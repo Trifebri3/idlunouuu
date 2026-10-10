@@ -1,0 +1,23 @@
+{
+  "name": "LUNOU · Social Identity & NFC Card",
+  "short_name": "LUNOU",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "Platform identitas digital personal dan kartu fisik pintar YOIMO NFC.",
+  "icons": [
+    {
+      "src": "/icon/1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon/1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
