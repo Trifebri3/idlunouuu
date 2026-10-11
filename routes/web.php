@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ComponentController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\NfcDeviceController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
@@ -63,6 +64,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/studio/portfolio/checkout', [PortfolioController::class, 'checkout'])->name('studio.portfolio.checkout');
     Route::post('/studio/portfolio/validate-voucher', [PortfolioController::class, 'validateVoucher'])->name('studio.portfolio.voucher.validate');
     Route::post('/studio/portfolio/orders/{order}/payment-proof', [PortfolioController::class, 'submitPaymentProof'])->name('studio.portfolio.orders.payment');
+
+    // Studio Feedback, Saran, Temuan
+    Route::post('/studio/feedback', [FeedbackController::class, 'store'])->name('studio.feedback.store');
     Route::post('/studio/portfolio/save', [PortfolioController::class, 'savePortfolio'])->name('studio.portfolio.save');
     Route::post('/studio/portfolio/publish', [PortfolioController::class, 'togglePublish'])->name('studio.portfolio.publish');
     Route::post('/studio/portfolio/pages', [PortfolioController::class, 'savePage'])->name('studio.portfolio.pages.save');

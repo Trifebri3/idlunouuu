@@ -34,6 +34,8 @@ class StudioController extends Controller
             'is_published' => true,
         ]);
 
+        $profile->load(['components']);
+
         $user->load([
             'nfcDevices',
             'nfcOrders' => fn ($q) => $q->latest(),

@@ -87,7 +87,7 @@ class ComponentController extends Controller
     /**
      * Reorder components list.
      */
-    public function reorder(Request $request): JsonResponse
+    public function reorder(Request $request): JsonResponse|RedirectResponse
     {
         $profile = $request->user()->profile;
 
@@ -102,7 +102,11 @@ class ComponentController extends Controller
                 ->update(['sort_order' => $index + 1]);
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Urutan komponen disimpan']);
+        if ($request->wantsJson() && ! $request->header('X-Inertia')) {
+            return response()->json(['status' => 'success', 'message' => 'Urutan komponen disimpan']);
+        }
+
+        return back()->with('success', 'Urutan komponen disimpan.');
     }
 
     /**

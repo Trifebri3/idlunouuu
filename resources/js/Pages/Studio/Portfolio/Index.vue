@@ -270,6 +270,83 @@ function selectPage(index) {
     selectedPageIndex.value = index;
 }
 
+// Page Reordering & Drag-and-Drop (Mudah Digeser)
+const draggedPageIndex = ref(null);
+const dragOverPageIndex = ref(null);
+
+function shiftPage(index, direction) {
+    if (!localPortfolio.value.pages || localPortfolio.value.pages.length <= 1) return;
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= localPortfolio.value.pages.length) return;
+
+    const pages = [...localPortfolio.value.pages];
+    const moved = pages.splice(index, 1)[0];
+    pages.splice(targetIndex, 0, moved);
+
+    localPortfolio.value.pages = pages;
+    selectedPageIndex.value = targetIndex;
+
+    persistPageOrder(pages);
+}
+
+function onPageDragStart(index, event) {
+    draggedPageIndex.value = index;
+    if (event?.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', index.toString());
+    }
+}
+
+function onPageDragOver(index, event) {
+    if (draggedPageIndex.value === null || draggedPageIndex.value === index) return;
+    dragOverPageIndex.value = index;
+}
+
+function onPageDragLeave(index, event) {
+    if (dragOverPageIndex.value === index) {
+        dragOverPageIndex.value = null;
+    }
+}
+
+function onPageDrop(targetIndex) {
+    const sourceIndex = draggedPageIndex.value;
+    draggedPageIndex.value = null;
+    dragOverPageIndex.value = null;
+
+    if (sourceIndex === null || sourceIndex === undefined || sourceIndex === targetIndex) return;
+
+    const pages = [...localPortfolio.value.pages];
+    const moved = pages.splice(sourceIndex, 1)[0];
+    pages.splice(targetIndex, 0, moved);
+
+    localPortfolio.value.pages = pages;
+    selectedPageIndex.value = targetIndex;
+
+    persistPageOrder(pages);
+}
+
+function onPageDragEnd() {
+    draggedPageIndex.value = null;
+    dragOverPageIndex.value = null;
+}
+
+function persistPageOrder(pages) {
+    const page_ids = pages.map(p => p.id).filter(Boolean);
+    if (page_ids.length > 0) {
+        saveStatus.value = 'saving';
+        router.post('/studio/portfolio/pages/reorder', { page_ids }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                saveStatus.value = 'saved';
+            },
+            onError: () => {
+                saveStatus.value = 'unsaved';
+            },
+        });
+    }
+}
+
 function addNewPage(pageType = 'custom') {
     const nextOrder = (localPortfolio.value.pages?.length || 0) + 1;
     let title = `Halaman ${nextOrder}`;
@@ -2371,6 +2448,28 @@ function copyToClipboard(text, key) {
                     </div>
 
                     <div class="flex items-center gap-1.5 flex-shrink-0 text-[11px]">
+                        <!-- Quick Move Page in Canvas Bar -->
+                        <div class="flex items-center bg-zinc-100 rounded-lg p-0.5 border border-zinc-200/80" title="Atur Posisi Halaman Ini">
+                            <button
+                                type="button"
+                                @click="shiftPage(selectedPageIndex, -1)"
+                                :disabled="selectedPageIndex === 0"
+                                class="px-2 py-0.5 rounded text-[10px] font-bold text-zinc-600 hover:text-blue-600 hover:bg-white disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-zinc-400 transition-all flex items-center gap-0.5 cursor-pointer disabled:cursor-not-allowed shadow-2xs"
+                                title="Geser ke kiri / halaman sebelumnya"
+                            >
+                                &larr; Geser Kiri
+                            </button>
+                            <button
+                                type="button"
+                                @click="shiftPage(selectedPageIndex, 1)"
+                                :disabled="selectedPageIndex === (localPortfolio.pages?.length || 1) - 1"
+                                class="px-2 py-0.5 rounded text-[10px] font-bold text-zinc-600 hover:text-blue-600 hover:bg-white disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-zinc-400 transition-all flex items-center gap-0.5 cursor-pointer disabled:cursor-not-allowed shadow-2xs"
+                                title="Geser ke kanan / halaman berikutnya"
+                            >
+                                Geser Kanan &rarr;
+                            </button>
+                        </div>
+                        <span class="text-zinc-300">|</span>
                         <button
                             @click="duplicateCurrentPage"
                             class="hover:text-blue-600 font-semibold px-1.5 py-0.5 rounded-md hover:bg-zinc-100"
@@ -3748,19 +3847,60 @@ function copyToClipboard(text, key) {
                 <!-- ----------------------------------------------------------------- -->
                 <!-- 3. BOTTOM FILMSTRIP PAGE NAVIGATION (CANVA STYLE) -->
                 <!-- ----------------------------------------------------------------- -->
-                <footer class="h-20 border-t border-zinc-200/90 bg-white px-4 flex items-center gap-3 overflow-x-auto shadow-2xs z-30">
-                    <div class="flex items-center gap-2">
-                        <!-- Thumbnail page items -->
+                <footer class="h-20 border-t border-zinc-200/90 bg-white px-4 flex items-center justify-between gap-3 overflow-x-auto shadow-2xs z-30">
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <!-- Thumbnail page items (Bisa Di-Drag & Digeser dengan Panah) -->
                         <div
                             v-for="(page, idx) in localPortfolio.pages"
                             :key="page.id || idx"
+                            draggable="true"
+                            @dragstart="onPageDragStart(idx, $event)"
+                            @dragover.prevent="onPageDragOver(idx, $event)"
+                            @dragleave="onPageDragLeave(idx, $event)"
+                            @drop.prevent="onPageDrop(idx)"
+                            @dragend="onPageDragEnd"
                             @click="selectPage(idx)"
-                            class="h-14 min-w-[90px] px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between select-none relative group"
-                            :class="selectedPageIndex === idx ? 'border-blue-600 bg-blue-50/50 shadow-2xs' : 'border-zinc-200 hover:border-zinc-300 bg-zinc-50/70'"
+                            class="h-14 min-w-[105px] max-w-[135px] px-2.5 py-1.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing flex flex-col justify-between select-none relative group"
+                            :class="[
+                                selectedPageIndex === idx ? 'border-blue-600 bg-blue-50/60 shadow-2xs ring-1 ring-blue-500' : 'border-zinc-200 hover:border-zinc-300 bg-zinc-50/80',
+                                draggedPageIndex === idx ? 'opacity-40 scale-95 border-dashed border-blue-400' : '',
+                                dragOverPageIndex === idx ? 'ring-2 ring-blue-500 scale-105 bg-blue-100/80 border-blue-500' : ''
+                            ]"
+                            :title="'Halaman ' + (idx + 1) + ': ' + page.title + ' (Tahan & drag untuk geser posisi)'"
                         >
-                            <span class="text-[9px] font-bold uppercase tracking-wider text-zinc-400 group-hover:text-blue-600">
-                                Page {{ idx + 1 }}
-                            </span>
+                            <!-- Top row: Page number & Grip + Shift Arrows -->
+                            <div class="flex items-center justify-between gap-1">
+                                <div class="flex items-center gap-1 min-w-0">
+                                    <span class="text-zinc-300 group-hover:text-zinc-500 text-[10px] leading-none select-none font-mono" title="Tahan & geser untuk pindah posisi">⋮⋮</span>
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-zinc-400 group-hover:text-blue-600 truncate">
+                                        Page {{ idx + 1 }}
+                                    </span>
+                                </div>
+
+                                <!-- Quick Shift Arrows (◀ / ▶) -->
+                                <div class="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity" :class="{ '!opacity-100': selectedPageIndex === idx }">
+                                    <button
+                                        type="button"
+                                        @click.stop="shiftPage(idx, -1)"
+                                        :disabled="idx === 0"
+                                        class="w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-zinc-600 hover:text-white hover:bg-blue-600 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-zinc-300 cursor-pointer disabled:cursor-not-allowed transition-all"
+                                        title="Geser halaman ke kiri"
+                                    >
+                                        &larr;
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click.stop="shiftPage(idx, 1)"
+                                        :disabled="idx === localPortfolio.pages.length - 1"
+                                        class="w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-zinc-600 hover:text-white hover:bg-blue-600 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-zinc-300 cursor-pointer disabled:cursor-not-allowed transition-all"
+                                        title="Geser halaman ke kanan"
+                                    >
+                                        &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Bottom row: Page Title -->
                             <span class="text-[11px] font-bold text-zinc-900 truncate">
                                 {{ page.title }}
                             </span>
@@ -3769,12 +3909,18 @@ function copyToClipboard(text, key) {
                         <!-- Add Page Button (+) -->
                         <button
                             @click="isAddPageModalOpen = true"
-                            class="h-14 min-w-[70px] rounded-xl border border-dashed border-zinc-300 hover:border-blue-500 hover:bg-blue-50/30 text-zinc-600 hover:text-blue-600 flex flex-col items-center justify-center gap-0.5 text-xs font-bold transition-all"
+                            class="h-14 min-w-[75px] rounded-xl border border-dashed border-zinc-300 hover:border-blue-500 hover:bg-blue-50/30 text-zinc-600 hover:text-blue-600 flex flex-col items-center justify-center gap-0.5 text-xs font-bold transition-all flex-shrink-0 cursor-pointer"
                             title="Tambah Halaman Baru"
                         >
                             <span class="text-base leading-none">+</span>
                             <span class="text-[10px]">Halaman</span>
                         </button>
+                    </div>
+
+                    <!-- Helpful Reorder Tooltip Hint (Desktop) -->
+                    <div class="hidden xl:flex items-center gap-1.5 text-[11px] text-zinc-500 bg-zinc-50 px-3 py-1.5 rounded-xl border border-zinc-200/80 flex-shrink-0">
+                        <span class="text-blue-600 font-bold">💡 Tips:</span>
+                        <span>Drag kartu atau klik panah &larr; &rarr; untuk mengubah susunan halaman.</span>
                     </div>
                 </footer>
                 <!-- Mobile Floating "+ Tambah Elemen" Button (Ramah Jempol Ponsel) -->

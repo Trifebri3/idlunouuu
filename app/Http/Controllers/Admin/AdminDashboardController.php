@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Feedback;
 use App\Models\NfcDevice;
 use App\Models\NfcOrder;
 use App\Models\Portfolio;
@@ -115,6 +116,7 @@ class AdminDashboardController extends Controller
             'nfcOrders' => $nfcOrders,
             'unassignedCards' => $unassignedCards,
             'auditLogs' => $auditLogs,
+            'feedbacks' => Feedback::with('user.profile')->latest()->take(50)->get(),
             // Portfolio Props
             'portfolioPlans' => $portfolioPlans,
             'portfolioVouchers' => $portfolioVouchers,

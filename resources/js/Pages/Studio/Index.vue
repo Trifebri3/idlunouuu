@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import LunouIcon from '@/Components/LunouIcon.vue';
@@ -31,10 +31,90 @@ const props = defineProps({
     },
 });
 
+// Reactive components list synced with props
+const activeComponents = ref([...(props.profile.components || [])]);
+watch(
+    () => props.profile.components,
+    (newVal) => {
+        activeComponents.value = [...(newVal || [])];
+    },
+    { deep: true, immediate: true }
+);
+
 // Active Editor Tab
-const activeTab = ref('profile'); // 'profile', 'components', 'themes', 'nfc', 'stats'
+const activeTab = ref('profile'); // 'profile', 'components', 'themes', 'nfc', 'stats', 'feedback'
 const mobileView = ref('editor'); // 'editor' or 'preview'
 const copied = ref(false);
+
+// Feedback, Saran & Temuan (UCD: Ruang Mendengar yang Hangat & Rendah Hati)
+const feedbackForm = useForm({
+    category: 'saran', // 'saran', 'temuan', 'masukan', 'lainnya'
+    message: '',
+    contact: '',
+    mood: 'senang',
+});
+const feedbackSubmitted = ref(false);
+
+const feedbackCategories = [
+    {
+        id: 'saran',
+        icon: '💡',
+        label: 'Saran Pengembangan',
+        desc: 'Ide fitur baru yang kamu impikan hadir di LUNOU',
+    },
+    {
+        id: 'temuan',
+        icon: '🔍',
+        label: 'Temuan Kendala / Eror',
+        desc: 'Bug, tombol yang macet, atau tampilan yang berantakan',
+    },
+    {
+        id: 'masukan',
+        icon: '💌',
+        label: 'Masukan Pengalaman',
+        desc: 'Cerita kenyamanan, kebingungan, atau rasa saat memakai platform',
+    },
+    {
+        id: 'lainnya',
+        icon: '💭',
+        label: 'Catatan Bebas',
+        desc: 'Apa saja yang ingin kamu sampaikan dengan tulus dari hati',
+    },
+];
+
+const feedbackMoods = [
+    { id: 'senang', emoji: '💖', label: 'Sangat Suka & Terbantu' },
+    { id: 'nyaman', emoji: '😊', label: 'Cukup Nyaman' },
+    { id: 'bingung', emoji: '🤔', label: 'Masih Bingung' },
+    { id: 'kecewa', emoji: '🥺', label: 'Terganggu Eror' },
+    { id: 'semangat', emoji: '🚀', label: 'Menanti Fitur Baru' },
+];
+
+const feedbackPlaceholder = computed(() => {
+    switch (feedbackForm.category) {
+        case 'saran':
+            return 'Tuliskan ide atau fitur impianmu di sini...\nContoh: "Bakal keren banget kalau ada fitur galeri foto interaktif atau musik latar...", kami sangat bersemangat membacanya!';
+        case 'temuan':
+            return 'Ceritakan kendala atau eror yang kamu temukan...\nContoh: "Tadi saat aku klik tombol X di ponselku, tampilannya jadi bergeser...", kami akan segera menelusuri dan memperbaikinya!';
+        case 'masukan':
+            return 'Ceritakan apa yang kamu rasakan saat memakai LUNOU...\nContoh: "Secara umum sudah cukup mudah, tapi di bagian ini agak sedikit membingungkan karena...", jangan ragu menegur kami ya!';
+        default:
+            return 'Tulis apa saja yang ada di hatimu untuk LUNOU... Kami siap mendengarkan dengan penuh rasa hormat.';
+    }
+});
+
+function submitFeedback() {
+    feedbackForm.post('/studio/feedback', {
+        preserveScroll: true,
+        onSuccess: () => {
+            feedbackSubmitted.value = true;
+            feedbackForm.reset('message');
+            setTimeout(() => {
+                feedbackSubmitted.value = false;
+            }, 8000);
+        },
+    });
+}
 
 // Profile Edit Form
 const profileForm = useForm({
@@ -251,10 +331,11 @@ function submitNewComponent() {
 
 function openEditModal(comp) {
     selectedComponent.value = comp;
+    componentForm.type = comp.type || 'social_link';
     componentForm.title = comp.title || '';
     componentForm.url = comp.url || '';
     componentForm.content = comp.content || '';
-    componentForm.settings = comp.settings || { icon: 'globe' };
+    componentForm.settings = comp.settings ? { ...comp.settings } : { icon: 'globe' };
     editComponentModal.value = true;
 }
 
@@ -285,13 +366,16 @@ function toggleVisibility(comp) {
 
 // Move Component Order
 function moveComponent(index, direction) {
-    const list = [...props.profile.components];
+    const list = [...activeComponents.value];
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= list.length) return;
 
     const temp = list[index];
     list[index] = list[targetIndex];
     list[targetIndex] = temp;
+
+    // Optimistic UI update
+    activeComponents.value = list;
 
     const order = list.map(c => c.id);
 
@@ -710,6 +794,19 @@ const currentThemeClass = computed(() => {
                                 Kelola &rarr;
                             </button>
                         </div>
+
+                        <!-- Mobile Feedback Invitation Pill (Unik & Rendah Hati) -->
+                        <div class="sm:hidden flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-50/90 to-teal-50/70 border border-emerald-200/80 shadow-2xs">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌱</span>
+                                <span class="text-[11px] font-semibold text-emerald-950">
+                                    Ada ide atau temukan kendala?
+                                </span>
+                            </div>
+                            <button @click="activeTab = 'feedback'; mobileView = 'editor'" class="text-[11px] text-emerald-800 font-bold hover:underline">
+                                Ceritakan &rarr;
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -753,6 +850,14 @@ const currentThemeClass = computed(() => {
                         :class="activeTab === 'stats' ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'"
                     >
                         <span>Interaksi Profil</span>
+                    </button>
+                    <button
+                        @click="activeTab = 'feedback'"
+                        class="px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                        :class="activeTab === 'feedback' ? 'bg-zinc-900 text-white shadow-sm' : 'text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/60'"
+                    >
+                        <span>🌱</span>
+                        <span>Saran & Temuan</span>
                     </button>
                     <Link
                         href="/studio/portfolio"
@@ -1015,11 +1120,11 @@ const currentThemeClass = computed(() => {
                     <!-- Active Components List (UCD Bab 4.3: Bahasa Manusia Tautan Profil) -->
                     <div class="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
                         <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
-                            <h3 class="text-sm font-bold text-zinc-900">Tautan & Konten Aktif ({{ profile.components?.length || 0 }})</h3>
-                            <span class="text-[11px] text-zinc-400">Atur urutan dengan panah</span>
+                            <h3 class="text-sm font-bold text-zinc-900">Tautan & Konten Aktif ({{ activeComponents.length }})</h3>
+                            <span class="text-[11px] text-zinc-400">Atur urutan, ubah isi, atau hapus</span>
                         </div>
 
-                        <div v-if="!profile.components || profile.components.length === 0" class="py-10 text-center text-zinc-400 space-y-3">
+                        <div v-if="activeComponents.length === 0" class="py-10 text-center text-zinc-400 space-y-3">
                             <ApplicationLogo className="w-12 h-12 mx-auto opacity-30" variant="2" />
                             <p class="text-sm text-zinc-600">Profilmu masih kosong. Mulai dengan menambahkan nama, tautan media sosial, atau karyamu.</p>
                             <button @click="openAddModal()" class="px-5 py-3 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-black transition-all shadow-2xs min-h-[44px]">
@@ -1029,7 +1134,7 @@ const currentThemeClass = computed(() => {
 
                         <div v-else class="space-y-2.5">
                             <div
-                                v-for="(comp, index) in profile.components"
+                                v-for="(comp, index) in activeComponents"
                                 :key="comp.id"
                                 class="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/90 hover:border-zinc-300 transition-all gap-2"
                                 :class="{ 'opacity-50': !comp.is_visible }"
@@ -1044,51 +1149,55 @@ const currentThemeClass = computed(() => {
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                                    <!-- Move Order -->
-                                    <button
-                                        @click="moveComponent(index, -1)"
-                                        :disabled="index === 0"
-                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 disabled:opacity-20 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                                        title="Pindah ke Atas"
-                                    >
-                                        <LunouIcon name="chevron-up" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                    </button>
-                                    <button
-                                        @click="moveComponent(index, 1)"
-                                        :disabled="index === profile.components.length - 1"
-                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 disabled:opacity-20 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                                        title="Pindah ke Bawah"
-                                    >
-                                        <LunouIcon name="chevron-down" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                    </button>
+                                <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                                    <!-- Move Order (Atur Urutan) -->
+                                    <div class="flex items-center bg-zinc-100/90 rounded-lg p-0.5 border border-zinc-200/70" title="Atur Susunan Posisi">
+                                        <button
+                                            @click="moveComponent(index, -1)"
+                                            :disabled="index === 0"
+                                            class="p-1 rounded-md text-zinc-600 hover:text-zinc-950 hover:bg-white disabled:opacity-20 disabled:hover:bg-transparent min-h-[30px] min-w-[30px] flex items-center justify-center transition-all shadow-2xs"
+                                            title="Pindah ke Atas"
+                                        >
+                                            <LunouIcon name="chevron-up" className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            @click="moveComponent(index, 1)"
+                                            :disabled="index === activeComponents.length - 1"
+                                            class="p-1 rounded-md text-zinc-600 hover:text-zinc-950 hover:bg-white disabled:opacity-20 disabled:hover:bg-transparent min-h-[30px] min-w-[30px] flex items-center justify-center transition-all shadow-2xs"
+                                            title="Pindah ke Bawah"
+                                        >
+                                            <LunouIcon name="chevron-down" className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
 
                                     <!-- Visibility Toggle -->
                                     <button
                                         @click="toggleVisibility(comp)"
-                                        class="p-1.5 sm:p-2 rounded-lg hover:bg-zinc-200/70 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                                        :class="comp.is_visible ? 'text-emerald-600' : 'text-zinc-300'"
-                                        title="Tampilkan / Sembunyikan"
+                                        class="p-1.5 rounded-lg border border-zinc-200/70 hover:bg-zinc-100 min-h-[32px] min-w-[32px] flex items-center justify-center transition-colors"
+                                        :class="comp.is_visible ? 'text-emerald-600 bg-emerald-50/60' : 'text-zinc-400 bg-zinc-50'"
+                                        :title="comp.is_visible ? 'Sembunyikan dari profil publik' : 'Tampilkan di profil publik'"
                                     >
-                                        <LunouIcon name="eye" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        <LunouIcon name="eye" className="w-3.5 h-3.5" />
                                     </button>
 
-                                    <!-- Edit -->
+                                    <!-- Edit / Rubah -->
                                     <button
                                         @click="openEditModal(comp)"
-                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-blue-600 hover:bg-zinc-200/70 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                                        title="Ubah Tautan"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-700 bg-zinc-100 hover:bg-blue-50 hover:text-blue-600 border border-zinc-200/70 transition-colors min-h-[32px]"
+                                        title="Rubah / Edit Tautan"
                                     >
-                                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                        <span class="hidden sm:inline">Rubah</span>
                                     </button>
 
-                                    <!-- Delete -->
+                                    <!-- Delete / Hapus -->
                                     <button
                                         @click="deleteComponent(comp)"
-                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-zinc-200/70 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 transition-colors min-h-[32px]"
                                         title="Hapus Tautan"
                                     >
-                                        <LunouIcon name="trash" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        <LunouIcon name="trash" className="w-3.5 h-3.5" />
+                                        <span class="hidden sm:inline">Hapus</span>
                                     </button>
                                 </div>
                             </div>
@@ -1480,6 +1589,157 @@ const currentThemeClass = computed(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB 6: Form Masukan, Saran Pengembangan, Temuan Kendala (Ruang Mendengar) -->
+                <div v-else-if="activeTab === 'feedback'" class="bg-white border border-zinc-200/90 rounded-2xl p-5 sm:p-7 md:p-8 shadow-sm space-y-6">
+                    <!-- Heartfelt Banner / Hero (Unik, Rendah Hati, Menarik Empati) -->
+                    <div class="relative overflow-hidden rounded-2xl p-6 sm:p-7 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-amber-50/50 border border-emerald-200/70 space-y-3.5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                                🌱 Ruang Mendengar
+                            </span>
+                            <span class="text-xs text-emerald-800 font-semibold">Karya kecil yang ingin terus belajar bersamamu</span>
+                        </div>
+
+                        <h2 class="text-lg sm:text-xl md:text-2xl font-black text-zinc-950 tracking-tight leading-snug">
+                            Dari Hatimu untuk LUNOU: Saran, Temuan & Suara Tulus
+                        </h2>
+
+                        <div class="text-xs sm:text-[13px] text-zinc-700 leading-relaxed space-y-2.5 max-w-2xl font-normal">
+                            <p>
+                                <strong>Halo, Teman Baik! 👋</strong><br>
+                                LUNOU dibangun dengan tangan dan hati kecil yang punya mimpi sederhana: memberi ruang bertumbuh yang hangat, rapi, dan membanggakan bagi identitas digital serta karyamu.
+                            </p>
+                            <p>
+                                Namun kami sangat sadar diri—langkah kami masih sangat awal dan aplikasi ini tentu masih jauh dari sempurna. Mungkin ada tombol yang membuatmu bingung, tautan yang macet, tampilan yang kurang pas di ponselmu, atau ide segar di kepalamu yang ingin kamu titipkan agar LUNOU menjadi rumah yang lebih nyaman.
+                            </p>
+                            <div class="font-medium text-emerald-950 bg-white/80 p-3 rounded-xl border border-emerald-200/80 shadow-2xs leading-relaxed">
+                                🌸 Bagi kami, <strong>teguranmu adalah tanda kasih sayang</strong>, dan <strong>saranmu adalah pupuk terbaik</strong> agar kami tidak tersesat dalam membangun platform ini.
+                            </div>
+                            <p class="text-zinc-600 text-xs">
+                                Ceritakan apa saja dengan jujur—tanpa sungkan dan tanpa ragu. Setiap kalimat yang kamu kirimkan di bawah ini akan kami baca langsung dengan penuh rasa hormat dan terima kasih mendalam. 🙏✨
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Flash Success Notification -->
+                    <div v-if="feedbackSubmitted" class="p-5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-start gap-3.5 shadow-sm transition-all animate-fadeIn">
+                        <span class="text-2xl flex-shrink-0">💌</span>
+                        <div class="text-xs sm:text-sm space-y-1">
+                            <div class="font-bold text-emerald-900 text-sm sm:text-base">Pelukan hangat dan terima kasih tak terhingga!</div>
+                            <p class="text-emerald-800 leading-relaxed text-xs">
+                                Catatanmu sudah kami simpan dengan rapi di meja pengembang. Masukan tulusmu memastikan kami tidak berjalan sendirian dalam membangun LUNOU. Semoga harimu menyenangkan!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Form Box -->
+                    <form @submit.prevent="submitFeedback" class="space-y-6">
+                        <!-- 1. Kategori Suara -->
+                        <div class="space-y-2.5">
+                            <label class="block text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                                1. Apa yang ingin kamu sampaikan hari ini? <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <button
+                                    type="button"
+                                    v-for="cat in feedbackCategories"
+                                    :key="cat.id"
+                                    @click="feedbackForm.category = cat.id"
+                                    class="p-3.5 rounded-xl border text-left transition-all flex items-start gap-3 group cursor-pointer"
+                                    :class="feedbackForm.category === cat.id ? 'border-zinc-950 bg-zinc-950 text-white shadow-md ring-1 ring-zinc-950' : 'border-zinc-200 bg-white hover:border-zinc-400 text-zinc-800 hover:bg-zinc-50'"
+                                >
+                                    <span class="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{{ cat.icon }}</span>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold" :class="feedbackForm.category === cat.id ? 'text-white' : 'text-zinc-900'">
+                                            {{ cat.label }}
+                                        </div>
+                                        <p class="text-[11px] mt-0.5 leading-snug line-clamp-2" :class="feedbackForm.category === cat.id ? 'text-zinc-300' : 'text-zinc-500'">
+                                            {{ cat.desc }}
+                                        </p>
+                                    </div>
+                                </button>
+                            </div>
+                            <div v-if="feedbackForm.errors.category" class="text-xs text-rose-600">
+                                {{ feedbackForm.errors.category }}
+                            </div>
+                        </div>
+
+                        <!-- 2. Suasana Hati / Ekspresi Rasa -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                                2. Bagaimana perasaanmu saat menggunakan LUNOU sejauh ini?
+                            </label>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button
+                                    type="button"
+                                    v-for="m in feedbackMoods"
+                                    :key="m.id"
+                                    @click="feedbackForm.mood = m.id"
+                                    class="px-3.5 py-2 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5 cursor-pointer"
+                                    :class="feedbackForm.mood === m.id ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-1 ring-emerald-500 shadow-2xs' : 'bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50'"
+                                >
+                                    <span>{{ m.emoji }}</span>
+                                    <span>{{ m.label }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3. Pesan / Cerita Terbuka -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                                    3. Ceritakan isi pikiranmu dengan bebas <span class="text-rose-500">*</span>
+                                </label>
+                                <span class="text-[11px] text-zinc-400 font-mono">{{ feedbackForm.message.length }} / 3000</span>
+                            </div>
+                            <textarea
+                                v-model="feedbackForm.message"
+                                rows="5"
+                                required
+                                maxlength="3000"
+                                class="w-full bg-zinc-50 border border-zinc-200 focus:border-zinc-900 focus:bg-white rounded-xl p-3.5 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-all leading-relaxed"
+                                :placeholder="feedbackPlaceholder"
+                            ></textarea>
+                            <div v-if="feedbackForm.errors.message" class="text-xs text-rose-600">
+                                {{ feedbackForm.errors.message }}
+                            </div>
+                        </div>
+
+                        <!-- 4. Kontak Opsional -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                                4. WhatsApp atau Email (Sangat Opsional)
+                            </label>
+                            <input
+                                type="text"
+                                v-model="feedbackForm.contact"
+                                class="w-full bg-zinc-50 border border-zinc-200 focus:border-zinc-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:outline-none transition-all"
+                                placeholder="Contoh: 08123456789 atau nama@email.com (Boleh dikosongkan jika ingin anonim)"
+                            />
+                            <p class="text-[11px] text-zinc-500 leading-snug">
+                                Hanya jika kamu berkenan disapa balik saat temuanmu sudah kami perbaiki atau sekadar ucapan terima kasih personal dari pengembang.
+                            </p>
+                        </div>
+
+                        <!-- Tombol Kirim -->
+                        <div class="flex items-center justify-between pt-3 border-t border-zinc-100 flex-wrap gap-3">
+                            <div class="text-[11px] text-zinc-400 flex items-center gap-1.5">
+                                <span>🔒</span>
+                                <span>Pesanmu dikirim langsung ke meja pembuat LUNOU.</span>
+                            </div>
+
+                            <button
+                                type="submit"
+                                :disabled="feedbackForm.processing || !feedbackForm.message.trim()"
+                                class="px-6 py-3 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold disabled:opacity-40 transition-all flex items-center gap-2 shadow-sm hover:shadow-md cursor-pointer disabled:cursor-not-allowed min-h-[44px]"
+                            >
+                                <span v-if="feedbackForm.processing" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                <span>{{ feedbackForm.processing ? 'Menyampaikan pesanmu...' : 'Sampaikan Suara Hatimu 💌' }}</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- RIGHT COLUMN: Interactive Live Preview (5 cols on Desktop) -->
@@ -1516,7 +1776,7 @@ const currentThemeClass = computed(() => {
 
                     <!-- Components Stack Preview -->
                     <div class="w-full mt-6 space-y-3 pb-8">
-                        <template v-for="comp in profile.components" :key="comp.id">
+                        <template v-for="comp in activeComponents" :key="comp.id">
                             <div
                                 v-if="comp.is_visible"
                                 class="w-full py-3.5 px-4 rounded-2xl transition-all flex items-center justify-between text-left text-xs font-semibold shadow-2xs"
@@ -1530,7 +1790,7 @@ const currentThemeClass = computed(() => {
                             </div>
                         </template>
 
-                        <div v-if="!profile.components || profile.components.length === 0" class="py-10 text-center text-xs opacity-50">
+                        <div v-if="activeComponents.length === 0" class="py-10 text-center text-xs opacity-50">
                             Tautan akan muncul di sini secara langsung.
                         </div>
                     </div>
@@ -1591,7 +1851,7 @@ const currentThemeClass = computed(() => {
 
                         <!-- Components Stack Preview -->
                         <div class="w-full mt-6 space-y-2.5 pb-6">
-                            <template v-for="comp in profile.components" :key="comp.id">
+                            <template v-for="comp in activeComponents" :key="comp.id">
                                 <div
                                     v-if="comp.is_visible"
                                     class="w-full py-2.5 px-3.5 rounded-xl transition-all flex items-center justify-between text-left text-xs font-semibold cursor-pointer"
@@ -1605,7 +1865,7 @@ const currentThemeClass = computed(() => {
                                 </div>
                             </template>
 
-                            <div v-if="!profile.components || profile.components.length === 0" class="py-8 text-center text-xs opacity-40">
+                            <div v-if="activeComponents.length === 0" class="py-8 text-center text-xs opacity-40">
                                 Tautan akan muncul di sini secara langsung.
                             </div>
                         </div>
@@ -2200,5 +2460,20 @@ const currentThemeClass = computed(() => {
                 </Link>
             </div>
         </nav>
+
+        <!-- Floating Quick Access Button (Saran & Temuan) -->
+        <button
+            v-if="activeTab !== 'feedback'"
+            @click="activeTab = 'feedback'; mobileView = 'editor'"
+            class="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-40 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-800 hover:from-black hover:to-zinc-900 text-white text-xs font-bold shadow-xl border border-zinc-700/60 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group backdrop-blur-md cursor-pointer"
+            title="Sampaikan Masukan, Saran Pengembangan, atau Temuan Eror"
+        >
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="flex items-center gap-1.5">
+                <span>🌱</span>
+                <span class="hidden sm:inline">Ada Saran & Temuan?</span>
+                <span class="sm:hidden">Saran & Temuan</span>
+            </span>
+        </button>
     </div>
 </template>
