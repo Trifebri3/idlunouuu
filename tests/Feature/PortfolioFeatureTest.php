@@ -323,11 +323,101 @@ class PortfolioFeatureTest extends TestCase
             'max_pdf_files' => 20,
             'max_pdf_size_mb' => 8,
             'terms_and_conditions' => 'Ketentuan Layanan Portofolio Lunou Versi 2.0',
+            'free_mode_enabled' => false,
+            'saweria_url' => 'https://saweria.co/Try3',
         ]);
         $settingsResponse->assertSessionHas('success');
 
         $this->assertEquals(20, PortfolioSetting::get('max_pdf_files'));
         $this->assertEquals(8, PortfolioSetting::get('max_pdf_size_mb'));
         $this->assertEquals('Ketentuan Layanan Portofolio Lunou Versi 2.0', PortfolioSetting::get('terms_and_conditions'));
+        $this->assertEquals('https://saweria.co/Try3', PortfolioSetting::get('saweria_url'));
+    }
+
+    public function test_admin_can_toggle_free_mode_and_users_get_instant_free_access(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $user = User::factory()->create(['role' => 'customer']);
+        $plan = PortfolioPlan::first();
+
+        // 1. Toggle Free Mode ON via Admin
+        $toggleResponse = $this->actingAs($admin)->post('/admin/portfolio/toggle-free-mode');
+        $toggleResponse->assertSessionHas('success');
+        $this->assertTrue((bool) PortfolioSetting::get('free_mode_enabled'));
+
+        // Effective price is 0
+        $this->assertEquals(0, $plan->getEffectivePrice());
+
+        // Authenticated user has active access by bypass
+        $this->assertTrue($user->hasActivePortfolioAccess());
+
+        // User checks out while free mode is active
+        $checkoutResponse = $this->actingAs($user)->post('/studio/portfolio/checkout', [
+            'plan_id' => $plan->id,
+        ]);
+        $checkoutResponse->assertSessionHas('success');
+
+        // Order is immediately approved with 0 total
+        $this->assertDatabaseHas('portfolio_orders', [
+            'user_id' => $user->id,
+            'final_amount' => 0,
+            'payment_status' => 'approved',
+            'status' => 'active',
+        ]);
+
+        // Entitlement is immediately created/active
+        $this->assertDatabaseHas('portfolio_entitlements', [
+            'user_id' => $user->id,
+            'status' => 'active',
+        ]);
+
+        // 2. Toggle Free Mode OFF
+        $toggleOffResponse = $this->actingAs($admin)->post('/admin/portfolio/toggle-free-mode');
+        $toggleOffResponse->assertSessionHas('success');
+        $this->assertFalse((bool) PortfolioSetting::get('free_mode_enabled'));
+    }
+
+    public function test_admin_can_update_showcase_slides_and_order_steps(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        // Update slides
+        $slidesResponse = $this->actingAs($admin)->post('/admin/portfolio/slides', [
+            'slides' => [
+                [
+                    'title' => 'Desain Kartu NFC Premium',
+                    'subtitle' => 'Edisi Matte Black & Wood',
+                    'image_url' => 'https://example.com/card.jpg',
+                    'description' => 'Contoh preview kartu NFC dengan tap responsif.',
+                    'tag' => 'NFC Card',
+                    'link' => '/p/tri',
+                ],
+            ],
+        ]);
+        $slidesResponse->assertSessionHas('success');
+
+        $slides = PortfolioSetting::get('showcase_slides');
+        $this->assertIsArray($slides);
+        $this->assertCount(1, $slides);
+        $this->assertEquals('Desain Kartu NFC Premium', $slides[0]['title']);
+
+        // Update order steps
+        $stepsResponse = $this->actingAs($admin)->post('/admin/portfolio/order-steps', [
+            'steps' => [
+                [
+                    'step_number' => 1,
+                    'title' => 'Pilih Template & Isi Data',
+                    'description' => 'Lengkapi profil dan bio kamu.',
+                    'badge' => 'Langkah 1',
+                    'icon' => 'sparkles',
+                ],
+            ],
+        ]);
+        $stepsResponse->assertSessionHas('success');
+
+        $steps = PortfolioSetting::get('order_steps');
+        $this->assertIsArray($steps);
+        $this->assertCount(1, $steps);
+        $this->assertEquals('Pilih Template & Isi Data', $steps[0]['title']);
     }
 }

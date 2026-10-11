@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Portfolio;
 use App\Models\PortfolioAsset;
+use App\Models\PortfolioEntitlement;
 use App\Models\PortfolioOrder;
 use App\Models\PortfolioPage;
 use App\Models\PortfolioPayment;
@@ -102,6 +103,8 @@ class PortfolioController extends Controller
             'termsAndConditions' => $termsAndConditions,
             'portfolio' => $portfolio,
             'publicUrl' => $portfolio ? url('/p/'.$portfolio->slug) : null,
+            'freeModeEnabled' => (bool) PortfolioSetting::get('free_mode_enabled', false),
+            'saweriaUrl' => PortfolioSetting::get('saweria_url', 'https://saweria.co/Try3'),
         ]);
     }
 
@@ -173,8 +176,10 @@ class PortfolioController extends Controller
             }
         }
 
-        $finalAmount = max(0, $basePrice - $discountAmount);
+        $isFreeMode = (bool) PortfolioSetting::get('free_mode_enabled', false);
+        $finalAmount = $isFreeMode ? 0 : max(0, $basePrice - $discountAmount);
         $orderNumber = 'LP-'.date('ymd').'-'.strtoupper(Str::random(4));
+        $isInstantFree = $isFreeMode || $finalAmount === 0;
 
         $order = PortfolioOrder::create([
             'order_number' => $orderNumber,
@@ -184,9 +189,38 @@ class PortfolioController extends Controller
             'original_price' => $basePrice,
             'discount_amount' => $discountAmount,
             'final_amount' => $finalAmount,
-            'payment_status' => 'pending',
-            'status' => 'pending',
+            'payment_status' => $isInstantFree ? 'approved' : 'pending',
+            'status' => $isInstantFree ? 'active' : 'pending',
         ]);
+
+        if ($isInstantFree) {
+            $durationDays = $plan->duration_days ?: 30;
+            PortfolioEntitlement::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'order_id' => $order->id,
+                    'status' => 'active',
+                    'starts_at' => now(),
+                    'expires_at' => now()->addDays($durationDays),
+                    'max_pdf_files' => $plan->max_pdf_files ?: 10,
+                    'max_pdf_size_mb' => $plan->max_pdf_size_mb ?: 5,
+                ]
+            );
+
+            AuditLog::create([
+                'actor_id' => $user->id,
+                'action' => 'portfolio_order_activated_free',
+                'target_type' => 'portfolio_order',
+                'target_id' => $order->id,
+                'metadata' => [
+                    'order_number' => $orderNumber,
+                    'final_amount' => 0,
+                    'free_mode' => $isFreeMode,
+                ],
+            ]);
+
+            return redirect()->route('studio.portfolio')->with('success', "Akses Portofolio Pro ({$orderNumber}) aktif secara instan (Mode Bebas Biaya/Gratis)! Selamat berkarya.");
+        }
 
         AuditLog::create([
             'actor_id' => $user->id,

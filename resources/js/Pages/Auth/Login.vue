@@ -135,27 +135,13 @@ const submit = () => {
             <span>Masuk dengan Google</span>
         </a>
 
-        <!-- Fast Dev Login for Testing (trygaming303@gmail.com & demo) -->
-        <div class="space-y-1.5 pt-1">
-            <a
-                href="/auth/dev-google-login?email=trygaming303@gmail.com"
-                class="w-full py-2 px-3 rounded-xl bg-blue-50/80 hover:bg-blue-100 border border-blue-200 text-blue-700 text-[11px] font-semibold text-center transition-all flex items-center justify-center gap-1.5"
-            >
-                <span>Masuk Cepat: trygaming303@gmail.com</span>
-                <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-blue-200 text-blue-800 font-bold">Simulasi Google</span>
-            </a>
-
-            <a
-                href="/auth/dev-login"
-                class="w-full py-1.5 px-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 border border-dashed border-zinc-200 text-zinc-600 text-[11px] font-medium text-center transition-all block"
-            >
-                Masuk Cepat Akun Demo (@tri)
-            </a>
-        </div>
-
         <!-- Terms Footer -->
         <p class="text-[11px] text-zinc-400 text-center leading-relaxed">
-            Dengan melanjutkan, kamu menyetujui Ketentuan Layanan dan Kebijakan Privasi LUNOU.
+            Dengan melanjutkan, kamu menyetujui
+            <Link href="/syarat-ketentuan" class="text-zinc-600 underline hover:text-zinc-950 font-medium transition-colors">Ketentuan Layanan</Link>
+            dan
+            <Link href="/syarat-ketentuan" class="text-zinc-600 underline hover:text-zinc-950 font-medium transition-colors">Kebijakan Privasi</Link>
+            LUNOU.
         </p>
     </GuestLayout>
 </template>

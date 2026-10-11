@@ -40,8 +40,25 @@ import { Link } from '@inertiajs/vue3';
         </div>
 
         <!-- Footer Note -->
-        <div class="mt-8 text-center text-xs text-zinc-400 relative z-10">
-            <span>&copy; {{ new Date().getFullYear() }} me.myoin.id · part of lunou.</span>
-        </div>
+        <footer class="mt-8 text-center text-xs text-zinc-400 relative z-10 space-y-2">
+            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-zinc-500 font-medium">
+                <Link href="/" class="hover:text-zinc-900 transition-colors">Beranda</Link>
+                <span>·</span>
+                <Link href="/syarat-ketentuan" class="hover:text-zinc-900 transition-colors">Syarat & Ketentuan</Link>
+                <span>·</span>
+                <Link href="/syarat-ketentuan" class="hover:text-zinc-900 transition-colors">Kebijakan Privasi</Link>
+                <span>·</span>
+                <a
+                    href="https://saweria.co/Try3"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-amber-600 hover:text-amber-700 font-semibold inline-flex items-center gap-1 transition-colors"
+                >
+                    <svg class="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span>Donasi Saweria</span>
+                </a>
+            </div>
+            <div>&copy; {{ new Date().getFullYear() }} me.myoin.id · part of lunou. Hak Cipta Dilindungi.</div>
+        </footer>
     </div>
 </template>

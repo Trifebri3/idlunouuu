@@ -45,6 +45,14 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    freeModeEnabled: {
+        type: Boolean,
+        default: false,
+    },
+    saweriaUrl: {
+        type: String,
+        default: 'https://saweria.co/Try3',
+    },
 });
 
 // ==========================================
@@ -165,6 +173,7 @@ async function applyVoucher() {
 }
 
 const computedOrderTotal = computed(() => {
+    if (props.freeModeEnabled) return 0;
     if (!selectedPlan.value) return 0;
     const isPromo = selectedPlan.value.is_promo || selectedPlan.value.is_promo_active;
     const base = isPromo && selectedPlan.value.promo_price
@@ -1560,7 +1569,22 @@ function copyToClipboard(text, key) {
 
                         <div class="pt-3 border-t border-zinc-200 flex justify-between items-baseline font-bold text-sm text-zinc-950">
                             <span>Total Pembayaran</span>
-                            <span class="text-xl text-blue-600 font-extrabold">{{ formatRupiah(computedOrderTotal) }}</span>
+                            <span v-if="freeModeEnabled" class="text-xl text-emerald-600 font-extrabold flex items-center gap-1.5">
+                                <span>GRATIS</span>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Rp 0</span>
+                            </span>
+                            <span v-else class="text-xl text-blue-600 font-extrabold">{{ formatRupiah(computedOrderTotal) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Free Mode Banner if active -->
+                    <div v-if="freeModeEnabled" class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2.5">
+                        <span class="text-base">✨</span>
+                        <div class="space-y-0.5">
+                            <strong class="font-bold block">Mode Bebas Biaya (Gratis) Aktif!</strong>
+                            <p class="text-[11px] text-emerald-800">
+                                Anda dapat langsung mengaktifkan fitur Portofolio Pro tanpa transfer bank sepeser pun.
+                            </p>
                         </div>
                     </div>
 
@@ -1569,7 +1593,12 @@ function copyToClipboard(text, key) {
                         :disabled="!isAgreeTerms || checkoutForm.processing"
                         class="w-full min-h-[48px] py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                        <span>{{ checkoutForm.processing ? 'Menyiapkan Pembayaran...' : 'Lanjutkan ke Pembayaran' }}</span>
+                        <span v-if="freeModeEnabled">
+                            {{ checkoutForm.processing ? 'Mengaktifkan Akses Gratis...' : 'Aktifkan Portofolio Pro Sekarang (Gratis)' }}
+                        </span>
+                        <span v-else>
+                            {{ checkoutForm.processing ? 'Menyiapkan Pembayaran...' : 'Lanjutkan ke Pembayaran' }}
+                        </span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
 

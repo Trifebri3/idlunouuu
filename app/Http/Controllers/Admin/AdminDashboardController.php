@@ -126,6 +126,10 @@ class AdminDashboardController extends Controller
                 'max_pdf_files' => (int) PortfolioSetting::get('max_pdf_files', 10),
                 'max_pdf_size_mb' => (int) PortfolioSetting::get('max_pdf_size_mb', 5),
                 'terms_and_conditions' => PortfolioSetting::get('terms_and_conditions', ''),
+                'free_mode_enabled' => (bool) PortfolioSetting::get('free_mode_enabled', false),
+                'saweria_url' => PortfolioSetting::get('saweria_url', 'https://saweria.co/Try3'),
+                'showcase_slides' => PortfolioSetting::get('showcase_slides', PortfolioSetting::defaultSlides()),
+                'order_steps' => PortfolioSetting::get('order_steps', PortfolioSetting::defaultOrderSteps()),
             ],
         ]);
     }

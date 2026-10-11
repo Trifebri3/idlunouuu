@@ -129,6 +129,10 @@ class User extends Authenticatable
             return true;
         }
 
+        if ((bool) PortfolioSetting::get('free_mode_enabled', false)) {
+            return true;
+        }
+
         return (bool) ($this->portfolioEntitlement && $this->portfolioEntitlement->isActive());
     }
 }

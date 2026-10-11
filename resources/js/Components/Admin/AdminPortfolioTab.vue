@@ -232,16 +232,184 @@ function revokeUserAccess(userId, userName) {
 }
 
 // ----------------------------------------------------
-// 6. GLOBAL SETTINGS & SYARAT KETENTUAN
+// 6. GLOBAL SETTINGS, MODE GRATIS, & SAWERIA
 // ----------------------------------------------------
 const settingsForm = useForm({
     max_pdf_files: props.portfolioSettings.max_pdf_files || 10,
     max_pdf_size_mb: props.portfolioSettings.max_pdf_size_mb || 5,
     terms_and_conditions: props.portfolioSettings.terms_and_conditions || '',
+    free_mode_enabled: Boolean(props.portfolioSettings.free_mode_enabled),
+    saweria_url: props.portfolioSettings.saweria_url || 'https://saweria.co/Try3',
 });
 
 function saveGlobalSettings() {
     settingsForm.post('/admin/portfolio/settings', {
+        preserveScroll: true,
+    });
+}
+
+function toggleFreeModeFast() {
+    router.post('/admin/portfolio/toggle-free-mode', {}, {
+        preserveScroll: true,
+    });
+}
+
+// ----------------------------------------------------
+// 7. SLIDE CONTOH KARYA & FOTO (SHOWCASE SLIDES)
+// ----------------------------------------------------
+const localSlides = ref(
+    Array.isArray(props.portfolioSettings.showcase_slides) && props.portfolioSettings.showcase_slides.length > 0
+        ? JSON.parse(JSON.stringify(props.portfolioSettings.showcase_slides))
+        : [
+            {
+                title: 'Portofolio Kreatif & Desain Visual',
+                subtitle: 'Karya Desain Grafis, UI/UX, & Identitas Visual',
+                image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+                description: 'Susun tata letak halaman portofolio layaknya di Canva dengan grid rapi, tipografi presisi, dan warna elegan yang siap dipresentasikan ke klien.',
+                tag: 'Visual Branding',
+                link: '/p/tri',
+            },
+            {
+                title: 'Dokumen PDF Interaktif & Flipbook',
+                subtitle: 'Koleksi CV, Resume, & Buku Karya Digital',
+                image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
+                description: 'Sematan berkas PDF langsung di dalam halaman portofolio dengan mode baca buku (flipbook) tanpa perlu mengunduh aplikasi tambahan.',
+                tag: 'Digital Flipbook',
+                link: '/p/tri',
+            },
+            {
+                title: 'Gantungan Kunci Fisik YOIMO NFC',
+                subtitle: 'Kartu & Keychain Pintar Berteknologi Tap Langsung',
+                image_url: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=1200&q=80',
+                description: 'Tingkatkan profesionalisme saat networking. Cukup tap gantungan kunci YOIMO ke ponsel rekan kerja untuk membuka portofolio digital seketika.',
+                tag: 'Hardware NFC',
+                link: '#cara-pesan',
+            },
+        ]
+);
+
+const slidesForm = useForm({
+    slides: localSlides.value,
+});
+
+function addSlide() {
+    localSlides.value.push({
+        title: 'Karya Desain Baru',
+        subtitle: 'Kategori Kreatif',
+        image_url: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1200&q=80',
+        description: 'Tuliskan deskripsi ringkas tentang foto atau karya ini.',
+        tag: 'Karya Baru',
+        link: '/p/tri',
+    });
+}
+
+function removeSlide(index) {
+    localSlides.value.splice(index, 1);
+}
+
+function moveSlideUp(index) {
+    if (index === 0) return;
+    const item = localSlides.value.splice(index, 1)[0];
+    localSlides.value.splice(index - 1, 0, item);
+}
+
+function moveSlideDown(index) {
+    if (index === localSlides.value.length - 1) return;
+    const item = localSlides.value.splice(index, 1)[0];
+    localSlides.value.splice(index + 1, 0, item);
+}
+
+function saveSlides() {
+    slidesForm.slides = localSlides.value;
+    slidesForm.post('/admin/portfolio/slides', {
+        preserveScroll: true,
+    });
+}
+
+// ----------------------------------------------------
+// 8. ALUR CARA PEMESANAN (ORDER STEPS)
+// ----------------------------------------------------
+const localSteps = ref(
+    Array.isArray(props.portfolioSettings.order_steps) && props.portfolioSettings.order_steps.length > 0
+        ? JSON.parse(JSON.stringify(props.portfolioSettings.order_steps))
+        : [
+            {
+                step_number: 1,
+                title: 'Pilih Paket atau Buat Akun',
+                description: 'Daftar akun gratis di me.myoin.id atau pilih paket Portfolio Creator Pro / Bundle YOIMO NFC untuk fitur lengkap.',
+                badge: 'Langkah 1',
+                icon: 'user',
+            },
+            {
+                step_number: 2,
+                title: 'Desain Portofolio & Upload Berkas',
+                description: 'Gunakan Canva-style page editor untuk menyusun halaman karya, menambahkan galeri foto, teks profil, dan dokumen PDF resmi.',
+                badge: 'Langkah 2',
+                icon: 'sparkles',
+            },
+            {
+                step_number: 3,
+                title: 'Lakukan Pembayaran & Verifikasi Admin',
+                description: 'Transfer ke rekening resmi LUNOU dan unggah bukti transfer (atau gratis langsung aktif saat promo bypass aktif).',
+                badge: 'Langkah 3',
+                icon: 'check',
+            },
+            {
+                step_number: 4,
+                title: 'Portofolio Tayang & Terima Kartu NFC',
+                description: 'Website portofolio Anda langsung aktif di link me.myoin.id/p/username dan kartu fisik YOIMO dikirimkan ke alamat Anda.',
+                badge: 'Langkah 4',
+                icon: 'card',
+            },
+        ]
+);
+
+const stepsForm = useForm({
+    steps: localSteps.value,
+});
+
+function addStep() {
+    const nextNum = localSteps.value.length + 1;
+    localSteps.value.push({
+        step_number: nextNum,
+        title: `Langkah ${nextNum}: Judul Tahapan`,
+        description: 'Jelaskan tahapan yang perlu dilakukan pengguna.',
+        badge: `Langkah ${nextNum}`,
+        icon: 'sparkles',
+    });
+}
+
+function removeStep(index) {
+    localSteps.value.splice(index, 1);
+    localSteps.value.forEach((step, idx) => {
+        step.step_number = idx + 1;
+        step.badge = `Langkah ${idx + 1}`;
+    });
+}
+
+function moveStepUp(index) {
+    if (index === 0) return;
+    const item = localSteps.value.splice(index, 1)[0];
+    localSteps.value.splice(index - 1, 0, item);
+    localSteps.value.forEach((step, idx) => {
+        step.step_number = idx + 1;
+        step.badge = `Langkah ${idx + 1}`;
+    });
+}
+
+function moveStepDown(index) {
+    if (index === localSteps.value.length - 1) return;
+    const item = localSteps.value.splice(index, 1)[0];
+    localSteps.value.splice(index + 1, 0, item);
+    localSteps.value.forEach((step, idx) => {
+        step.step_number = idx + 1;
+        step.badge = `Langkah ${idx + 1}`;
+    });
+}
+
+function saveOrderSteps() {
+    stepsForm.steps = localSteps.value;
+    stepsForm.post('/admin/portfolio/order-steps', {
         preserveScroll: true,
     });
 }
@@ -375,7 +543,30 @@ function formatRupiah(num) {
                     class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap"
                     :class="activeSubtab === 'settings' ? 'bg-zinc-950 text-white shadow-2xs' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'"
                 >
-                    <span>Batasan & Syarat Ketentuan</span>
+                    <span>Mode Gratis, Saweria & Batasan</span>
+                    <span v-if="portfolioSettings.free_mode_enabled" class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-500 text-white font-bold animate-pulse">
+                        GRATIS AKTIF
+                    </span>
+                </button>
+
+                <button
+                    @click="activeSubtab = 'slides'"
+                    type="button"
+                    class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap"
+                    :class="activeSubtab === 'slides' ? 'bg-zinc-950 text-white shadow-2xs' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'"
+                >
+                    <LunouIcon name="layers" className="w-3.5 h-3.5" />
+                    <span>Slide Contoh Karya ({{ localSlides.length }})</span>
+                </button>
+
+                <button
+                    @click="activeSubtab = 'order_steps'"
+                    type="button"
+                    class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap"
+                    :class="activeSubtab === 'order_steps' ? 'bg-zinc-950 text-white shadow-2xs' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'"
+                >
+                    <LunouIcon name="sparkles" className="w-3.5 h-3.5" />
+                    <span>Cara Pemesanan ({{ localSteps.length }})</span>
                 </button>
             </div>
         </div>
@@ -807,15 +998,77 @@ function formatRupiah(num) {
         </div>
 
         <!-- ===================================================================== -->
-        <!-- SUBTAB 7: BATASAN & SYARAT KETENTUAN PLATFORM -->
+        <!-- SUBTAB 7: BATASAN, MODE GRATIS, SAWERIA & SYARAT KETENTUAN -->
         <!-- ===================================================================== -->
         <div v-if="activeSubtab === 'settings'" class="bg-white border border-zinc-200/90 rounded-3xl p-5 sm:p-7 space-y-6 shadow-2xs">
             <div>
-                <h3 class="text-base font-bold text-zinc-950">Batasan Platform & Kebijakan Syarat Ketentuan</h3>
-                <p class="text-xs text-zinc-500 mt-0.5">Atur batasan unggah berkas PDF serta teks ketentuan layanan.</p>
+                <h3 class="text-base font-bold text-zinc-950">Mode Akses Gratis, Dukungan Saweria, Batasan & Syarat Ketentuan</h3>
+                <p class="text-xs text-zinc-500 mt-0.5">Atur bypass harga menjadi gratis, tautan donasi Saweria, batasan berkas, dan syarat layanan.</p>
+            </div>
+
+            <!-- 1-Click Fast Free Mode Toggle Banner -->
+            <div
+                class="p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                :class="portfolioSettings.free_mode_enabled ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950' : 'bg-zinc-50 border-zinc-200 text-zinc-800'"
+            >
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+                            :class="portfolioSettings.free_mode_enabled ? 'bg-emerald-600 text-white' : 'bg-zinc-300 text-zinc-700'"
+                        >
+                            {{ portfolioSettings.free_mode_enabled ? 'Mode Bebas Biaya Aktif' : 'Mode Berbayar Normal' }}
+                        </span>
+                        <h4 class="font-bold text-sm sm:text-base">Bypass Semua Harga Jadi Gratis (Free Mode)</h4>
+                    </div>
+                    <p class="text-xs opacity-85 leading-relaxed max-w-xl">
+                        {{ portfolioSettings.free_mode_enabled
+                            ? 'Saat ini semua harga portofolio diatur menjadi Rp 0 (Gratis). Pengguna dapat langsung mengaktifkan fitur pro seketika tanpa perlu transfer bank.'
+                            : 'Ketika diaktifkan, semua pengguna baru dan lama dapat membuat serta mempublikasikan portofolio tanpa dipungut biaya langganan.' }}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    @click="toggleFreeModeFast"
+                    class="px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition-all whitespace-nowrap min-h-[40px]"
+                    :class="portfolioSettings.free_mode_enabled
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'"
+                >
+                    {{ portfolioSettings.free_mode_enabled ? 'Matikan Mode Gratis (Normal)' : 'Aktifkan Mode Gratis Sekarang (Bypass)' }}
+                </button>
             </div>
 
             <form @submit.prevent="saveGlobalSettings" class="max-w-2xl space-y-4 text-xs">
+                <!-- Checkbox Free Mode in Form -->
+                <div class="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-zinc-900 block">Status Mode Gratis</span>
+                        <span class="text-[11px] text-zinc-500">Centang untuk membebaskan biaya langganan</span>
+                    </div>
+                    <input
+                        type="checkbox"
+                        v-model="settingsForm.free_mode_enabled"
+                        class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                </div>
+
+                <!-- URL Saweria -->
+                <div>
+                    <label class="block font-bold text-zinc-800 mb-1">
+                        URL Donasi & Dukungan Saweria
+                        <span class="text-amber-600 font-semibold">(https://saweria.co/Try3)</span>
+                    </label>
+                    <input
+                        v-model="settingsForm.saweria_url"
+                        type="url"
+                        placeholder="https://saweria.co/Try3"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 font-medium"
+                    />
+                    <p class="text-[11px] text-zinc-400 mt-1">Ditampilkan di footer dan seksi donasi untuk mendukung pengembang & kreator.</p>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block font-bold text-zinc-800 mb-1">Batas Maksimum PDF per Pengguna</label>
@@ -842,7 +1095,7 @@ function formatRupiah(num) {
                     <label class="block font-bold text-zinc-800 mb-1">Teks Syarat & Ketentuan Tambahan (Markdown/HTML)</label>
                     <textarea
                         v-model="settingsForm.terms_and_conditions"
-                        rows="8"
+                        rows="6"
                         class="w-full p-3.5 rounded-2xl border border-zinc-300 font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     ></textarea>
                 </div>
@@ -852,9 +1105,325 @@ function formatRupiah(num) {
                     :disabled="settingsForm.processing"
                     class="px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition-all shadow-2xs"
                 >
-                    {{ settingsForm.processing ? 'Menyimpan...' : 'Simpan Pengaturan Batasan & Syarat' }}
+                    {{ settingsForm.processing ? 'Menyimpan...' : 'Simpan Semua Pengaturan & Saweria' }}
                 </button>
             </form>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- SUBTAB 8: SLIDE CONTOH KARYA & FOTO (SHOWCASE SLIDES) -->
+        <!-- ===================================================================== -->
+        <div v-if="activeSubtab === 'slides'" class="bg-white border border-zinc-200/90 rounded-3xl p-5 sm:p-7 space-y-6 shadow-2xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-bold text-zinc-950">Kelola Slide Contoh Karya & Foto Publik</h3>
+                    <p class="text-xs text-zinc-500 mt-0.5">
+                        Slide ini tampil interaktif di halaman utama (Welcome) untuk memperlihatkan contoh hasil portofolio dan foto produk nyata.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="addSlide"
+                        class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                    >
+                        <span>+ Tambah Slide</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="saveSlides"
+                        :disabled="slidesForm.processing"
+                        class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-2xs transition-all disabled:opacity-50"
+                    >
+                        {{ slidesForm.processing ? 'Menyimpan...' : 'Simpan Slide' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Slide Cards List -->
+            <div class="space-y-4">
+                <div
+                    v-for="(slide, sIdx) in localSlides"
+                    :key="sIdx"
+                    class="p-4 sm:p-5 rounded-2xl bg-zinc-50/70 border border-zinc-200/80 space-y-3.5"
+                >
+                    <div class="flex items-center justify-between border-b border-zinc-200/60 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center">
+                                {{ sIdx + 1 }}
+                            </span>
+                            <span class="font-bold text-xs text-zinc-900">{{ slide.title || 'Slide Tanpa Judul' }}</span>
+                            <span v-if="slide.tag" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                                {{ slide.tag }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button
+                                type="button"
+                                @click="moveSlideUp(sIdx)"
+                                :disabled="sIdx === 0"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-800 disabled:opacity-20"
+                                title="Geser ke Atas"
+                            >
+                                &uarr;
+                            </button>
+                            <button
+                                type="button"
+                                @click="moveSlideDown(sIdx)"
+                                :disabled="sIdx === localSlides.length - 1"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-800 disabled:opacity-20"
+                                title="Geser ke Bawah"
+                            >
+                                &darr;
+                            </button>
+                            <button
+                                type="button"
+                                @click="removeSlide(sIdx)"
+                                class="p-1.5 text-rose-500 hover:text-rose-700 ml-1"
+                                title="Hapus Slide"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start text-xs">
+                        <!-- Preview Image Thumbnail -->
+                        <div class="md:col-span-4 space-y-1.5">
+                            <label class="block font-bold text-zinc-700">URL Gambar / Foto</label>
+                            <input
+                                v-model="slide.image_url"
+                                placeholder="https://..."
+                                class="w-full px-3 py-2 rounded-xl border border-zinc-300 font-mono text-[11px]"
+                            />
+                            <div class="h-32 rounded-xl border border-zinc-200 overflow-hidden bg-zinc-200 relative">
+                                <img
+                                    v-if="slide.image_url"
+                                    :src="slide.image_url"
+                                    alt=""
+                                    class="w-full h-full object-cover"
+                                    @error="$event.target.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'"
+                                />
+                                <div v-else class="h-full flex items-center justify-center text-zinc-400 text-[10px]">
+                                    Belum ada foto
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Text Inputs -->
+                        <div class="md:col-span-8 space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-bold text-zinc-700 mb-1">Judul Slide</label>
+                                    <input
+                                        v-model="slide.title"
+                                        placeholder="Contoh Portofolio Desain"
+                                        class="w-full px-3 py-2 rounded-xl border border-zinc-300 font-semibold text-xs"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-zinc-700 mb-1">Subtitle / Subjudul</label>
+                                    <input
+                                        v-model="slide.subtitle"
+                                        placeholder="Karya Grafis & Visual"
+                                        class="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-bold text-zinc-700 mb-1">Tag / Kategori</label>
+                                    <input
+                                        v-model="slide.tag"
+                                        placeholder="Visual Branding"
+                                        class="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-zinc-700 mb-1">Link Tautan (Opsional)</label>
+                                    <input
+                                        v-model="slide.link"
+                                        placeholder="/p/tri atau https://..."
+                                        class="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs font-mono text-[11px]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-zinc-700 mb-1">Deskripsi Lengkap Slide</label>
+                                <textarea
+                                    v-model="slide.description"
+                                    rows="2"
+                                    placeholder="Jelaskan keunggulan dan konten dari karya ini..."
+                                    class="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs"
+                                ></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="localSlides.length === 0" class="p-8 text-center text-zinc-400 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
+                    Belum ada slide contoh. Klik tombol "+ Tambah Slide" di atas untuk menambahkan contoh karya publik.
+                </div>
+
+                <div class="pt-2 flex justify-end">
+                    <button
+                        type="button"
+                        @click="saveSlides"
+                        :disabled="slidesForm.processing"
+                        class="px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-2xs transition-all disabled:opacity-50"
+                    >
+                        {{ slidesForm.processing ? 'Menyimpan...' : 'Simpan Semua Slide Contoh' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- SUBTAB 9: CARA PEMESANAN (ORDER STEPS) -->
+        <!-- ===================================================================== -->
+        <div v-if="activeSubtab === 'order_steps'" class="bg-white border border-zinc-200/90 rounded-3xl p-5 sm:p-7 space-y-6 shadow-2xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-bold text-zinc-950">Kelola Alur Cara Pemesanan & Pembelian</h3>
+                    <p class="text-xs text-zinc-500 mt-0.5">
+                        Tahapan ini ditampilkan di seksi "Cara Pesan" pada halaman utama untuk memandu calon pelanggan cara memesan portofolio dan gantungan kunci NFC.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="addStep"
+                        class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                    >
+                        <span>+ Tambah Langkah</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="saveOrderSteps"
+                        :disabled="stepsForm.processing"
+                        class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-2xs transition-all disabled:opacity-50"
+                    >
+                        {{ stepsForm.processing ? 'Menyimpan...' : 'Simpan Alur Pesan' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Steps Cards List -->
+            <div class="space-y-4">
+                <div
+                    v-for="(step, stIdx) in localSteps"
+                    :key="stIdx"
+                    class="p-4 sm:p-5 rounded-2xl bg-zinc-50/70 border border-zinc-200/80 space-y-3"
+                >
+                    <div class="flex items-center justify-between border-b border-zinc-200/60 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+                                {{ step.step_number || stIdx + 1 }}
+                            </span>
+                            <span class="font-bold text-xs text-zinc-900">{{ step.title || 'Langkah Baru' }}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-200 text-zinc-800">
+                                {{ step.badge || `Langkah ${stIdx + 1}` }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button
+                                type="button"
+                                @click="moveStepUp(stIdx)"
+                                :disabled="stIdx === 0"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-800 disabled:opacity-20"
+                                title="Geser ke Atas"
+                            >
+                                &uarr;
+                            </button>
+                            <button
+                                type="button"
+                                @click="moveStepDown(stIdx)"
+                                :disabled="stIdx === localSteps.length - 1"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-800 disabled:opacity-20"
+                                title="Geser ke Bawah"
+                            >
+                                &darr;
+                            </button>
+                            <button
+                                type="button"
+                                @click="removeStep(stIdx)"
+                                class="p-1.5 text-rose-500 hover:text-rose-700 ml-1"
+                                title="Hapus Langkah"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
+                        <div class="sm:col-span-2">
+                            <label class="block font-bold text-zinc-700 mb-1">Nomor Urut</label>
+                            <input
+                                v-model.number="step.step_number"
+                                type="number"
+                                min="1"
+                                class="w-full px-3 py-2 rounded-xl border border-zinc-300 font-bold text-center"
+                            />
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block font-bold text-zinc-700 mb-1">Teks Badge</label>
+                            <input
+                                v-model="step.badge"
+                                placeholder="Langkah 1"
+                                class="w-full px-3 py-2 rounded-xl border border-zinc-300 font-semibold"
+                            />
+                        </div>
+                        <div class="sm:col-span-4">
+                            <label class="block font-bold text-zinc-700 mb-1">Judul Langkah</label>
+                            <input
+                                v-model="step.title"
+                                placeholder="Pilih Paket atau Buat Akun"
+                                class="w-full px-3 py-2 rounded-xl border border-zinc-300 font-bold"
+                            />
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block font-bold text-zinc-700 mb-1">Ikon Representatif</label>
+                            <select
+                                v-model="step.icon"
+                                class="w-full px-3 py-2 rounded-xl border border-zinc-300 font-medium"
+                            >
+                                <option value="user">User (Akun)</option>
+                                <option value="sparkles">Sparkles (Karya/Kreatif)</option>
+                                <option value="check">Check (Verifikasi/Lunas)</option>
+                                <option value="card">Card (NFC/Kartu)</option>
+                                <option value="layers">Layers (Halaman/Desain)</option>
+                                <option value="link">Link (Publikasi)</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-12">
+                            <label class="block font-bold text-zinc-700 mb-1">Deskripsi Langkah</label>
+                            <textarea
+                                v-model="step.description"
+                                rows="2"
+                                placeholder="Jelaskan secara singkat apa yang perlu dilakukan pengguna pada tahap ini..."
+                                class="w-full px-3 py-2 rounded-xl border border-zinc-300 text-xs"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="localSteps.length === 0" class="p-8 text-center text-zinc-400 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
+                    Belum ada langkah pemesanan. Klik "+ Tambah Langkah" di atas untuk menambahkan alur cara pesan.
+                </div>
+
+                <div class="pt-2 flex justify-end">
+                    <button
+                        type="button"
+                        @click="saveOrderSteps"
+                        :disabled="stepsForm.processing"
+                        class="px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-2xs transition-all disabled:opacity-50"
+                    >
+                        {{ stepsForm.processing ? 'Menyimpan...' : 'Simpan Semua Alur Pemesanan' }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- ===================================================================== -->

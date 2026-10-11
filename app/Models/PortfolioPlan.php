@@ -46,10 +46,14 @@ class PortfolioPlan extends Model
     }
 
     /**
-     * Compute current effective price considering active promo.
+     * Compute current effective price considering active promo and global free mode.
      */
     public function getEffectivePrice(): int
     {
+        if ((bool) PortfolioSetting::get('free_mode_enabled', false)) {
+            return 0;
+        }
+
         if ($this->is_promo_active && $this->promo_price !== null) {
             if ($this->promo_ends_at === null || $this->promo_ends_at->isFuture()) {
                 return (int) $this->promo_price;
@@ -57,5 +61,13 @@ class PortfolioPlan extends Model
         }
 
         return (int) $this->price;
+    }
+
+    /**
+     * Check if global free mode is currently active.
+     */
+    public static function isFreeModeActive(): bool
+    {
+        return (bool) PortfolioSetting::get('free_mode_enabled', false);
     }
 }

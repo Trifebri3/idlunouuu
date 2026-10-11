@@ -9,19 +9,28 @@ use App\Http\Controllers\PublicPortfolioController;
 use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\TermsController;
+use App\Models\PortfolioSetting;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // 1. Landing Page
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return Inertia::render('Welcome', [
+        'showcaseSlides' => PortfolioSetting::get('showcase_slides', PortfolioSetting::defaultSlides()),
+        'orderSteps' => PortfolioSetting::get('order_steps', PortfolioSetting::defaultOrderSteps()),
+        'freeModeEnabled' => (bool) PortfolioSetting::get('free_mode_enabled', false),
+        'saweriaUrl' => PortfolioSetting::get('saweria_url', 'https://saweria.co/Try3'),
+    ]);
 })->name('home');
 
-// 2. Google OAuth & Dev Authentication
+// 2. Google OAuth & Production Authentication
 Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
-Route::get('/auth/dev-login/{role?}', [GoogleAuthController::class, 'devLogin'])->name('auth.dev-login');
-Route::get('/auth/dev-google-login', [GoogleAuthController::class, 'devGoogleLogin'])->name('auth.dev-google-login');
+
+if (app()->isLocal()) {
+    Route::get('/auth/dev-login/{role?}', [GoogleAuthController::class, 'devLogin'])->name('auth.dev-login');
+    Route::get('/auth/dev-google-login', [GoogleAuthController::class, 'devGoogleLogin'])->name('auth.dev-google-login');
+}
 
 // 3. Authenticated LUNOU Studio & Management
 Route::middleware(['auth'])->group(function () {

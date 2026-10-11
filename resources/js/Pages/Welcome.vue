@@ -1,8 +1,27 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import LunouIcon from '@/Components/LunouIcon.vue';
+
+const props = defineProps({
+    showcaseSlides: {
+        type: Array,
+        default: () => [],
+    },
+    orderSteps: {
+        type: Array,
+        default: () => [],
+    },
+    freeModeEnabled: {
+        type: Boolean,
+        default: false,
+    },
+    saweriaUrl: {
+        type: String,
+        default: 'https://saweria.co/Try3',
+    },
+});
 
 const activeKeychainVariant = ref('mascot'); // 'mascot', 'initial', 'leather'
 const keychainTapped = ref(false);
@@ -18,6 +37,95 @@ function triggerKeychainTap() {
         keychainTapped.value = false;
     }, 4500);
 }
+
+// -----------------------------------------------------------------
+// CAROUSEL SHOWCASE SLIDER STATE (CONTOH FOTO & KARYA VIA ADMIN)
+// -----------------------------------------------------------------
+const activeSlideIndex = ref(0);
+
+const slides = computed(() => {
+    return Array.isArray(props.showcaseSlides) && props.showcaseSlides.length > 0
+        ? props.showcaseSlides
+        : [
+            {
+                title: 'Portofolio Kreatif & Desain Visual',
+                subtitle: 'Karya Desain Grafis, UI/UX, & Identitas Visual',
+                image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+                description: 'Susun tata letak halaman portofolio layaknya di Canva dengan grid rapi, tipografi presisi, dan warna elegan yang siap dipresentasikan ke klien.',
+                tag: 'Visual Branding',
+                link: '/p/tri',
+            },
+            {
+                title: 'Dokumen PDF Interaktif & Flipbook',
+                subtitle: 'Koleksi CV, Resume, & Buku Karya Digital',
+                image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
+                description: 'Sematan berkas PDF langsung di dalam halaman portofolio dengan mode baca buku (flipbook) tanpa perlu mengunduh aplikasi tambahan.',
+                tag: 'Digital Flipbook',
+                link: '/p/tri',
+            },
+            {
+                title: 'Gantungan Kunci Fisik YOIMO NFC',
+                subtitle: 'Kartu & Keychain Pintar Berteknologi Tap Langsung',
+                image_url: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=1200&q=80',
+                description: 'Tingkatkan profesionalisme saat networking. Cukup tap gantungan kunci YOIMO ke ponsel rekan kerja untuk membuka portofolio digital seketika.',
+                tag: 'Hardware NFC',
+                link: '#cara-pesan',
+            },
+        ];
+});
+
+function nextSlide() {
+    if (activeSlideIndex.value < slides.value.length - 1) {
+        activeSlideIndex.value++;
+    } else {
+        activeSlideIndex.value = 0;
+    }
+}
+
+function prevSlide() {
+    if (activeSlideIndex.value > 0) {
+        activeSlideIndex.value--;
+    } else {
+        activeSlideIndex.value = slides.value.length - 1;
+    }
+}
+
+function goToSlide(idx) {
+    activeSlideIndex.value = idx;
+}
+
+const currentSlide = computed(() => slides.value[activeSlideIndex.value] || slides.value[0]);
+
+const defaultOrderStepsList = [
+    {
+        step_number: 1,
+        title: 'Pilih Paket atau Buat Akun',
+        description: 'Daftar akun gratis di me.myoin.id atau pilih paket Portfolio Creator Pro / Bundle YOIMO NFC untuk fitur lengkap.',
+        badge: 'Langkah 1',
+        icon: 'user',
+    },
+    {
+        step_number: 2,
+        title: 'Desain Portofolio & Upload Berkas',
+        description: 'Gunakan Canva-style page editor untuk menyusun halaman karya, menambahkan galeri foto, teks profil, dan dokumen PDF resmi.',
+        badge: 'Langkah 2',
+        icon: 'sparkles',
+    },
+    {
+        step_number: 3,
+        title: 'Lakukan Pembayaran & Verifikasi Admin',
+        description: 'Transfer ke rekening resmi LUNOU dan unggah bukti transfer (atau gratis langsung aktif saat promo bypass aktif).',
+        badge: 'Langkah 3',
+        icon: 'check',
+    },
+    {
+        step_number: 4,
+        title: 'Portofolio Tayang & Terima Kartu NFC',
+        description: 'Website portofolio Anda langsung aktif di link me.myoin.id/p/username dan kartu fisik YOIMO dikirimkan ke alamat Anda.',
+        badge: 'Langkah 4',
+        icon: 'card',
+    },
+];
 </script>
 
 <template>
@@ -41,12 +149,21 @@ function triggerKeychainTap() {
                 </div>
 
                 <!-- Navigation Links (Desktop) -->
-                <nav class="hidden md:flex items-center gap-6 lg:gap-8 text-xs font-semibold text-zinc-600 flex-shrink-0">
-                    <a href="#story" class="hover:text-zinc-950 transition-colors whitespace-nowrap">Cerita</a>
+                <nav class="hidden md:flex items-center gap-5 lg:gap-7 text-xs font-semibold text-zinc-600 flex-shrink-0">
                     <a href="#space" class="hover:text-zinc-950 transition-colors whitespace-nowrap">Ruang Profil</a>
+                    <a href="#showcase" class="hover:text-zinc-950 transition-colors whitespace-nowrap">Contoh Karya</a>
+                    <a href="#cara-pesan" class="hover:text-zinc-950 transition-colors whitespace-nowrap font-bold text-blue-600">Cara Pesan</a>
                     <a href="#keychain" class="hover:text-zinc-950 transition-colors whitespace-nowrap">Gantungan Kunci</a>
                     <a href="#pricing" class="hover:text-zinc-950 transition-colors whitespace-nowrap">Pilihan Paket</a>
-                    <a href="#stories" class="hover:text-zinc-950 transition-colors whitespace-nowrap">Untuk Siapa</a>
+                    <a
+                        :href="saweriaUrl || 'https://saweria.co/Try3'"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-amber-600 hover:text-amber-700 font-bold transition-colors whitespace-nowrap inline-flex items-center gap-1"
+                    >
+                        <svg class="w-3.5 h-3.5 fill-amber-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span>Saweria</span>
+                    </a>
                 </nav>
 
                 <!-- Auth Action CTAs -->
@@ -332,6 +449,122 @@ function triggerKeychainTap() {
             </div>
         </section>
 
+        <!-- 02.5 — CONTOH KARYA & FOTO (SHOWCASE SLIDER - DIATUR VIA ADMIN) -->
+        <section id="showcase" class="py-20 md:py-28 bg-[#fafbfc] border-b border-zinc-200/80 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+                <div class="max-w-3xl mx-auto text-center space-y-4">
+                    <span class="px-3.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/70 text-xs font-mono font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
+                        <LunouIcon name="layers" className="w-3.5 h-3.5" />
+                        <span>Koleksi Karya & Foto Nyata</span>
+                    </span>
+                    <h2 class="text-3xl sm:text-5xl font-black text-zinc-950 tracking-tight leading-tight">
+                        Inspirasi Portofolio & Produk Nyata
+                    </h2>
+                    <p class="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
+                        Lihat langsung bagaimana profil digital, lembar karya desain, berkas PDF resmi, dan gantungan kunci pintar LUNOU ditampilkan secara profesional.
+                    </p>
+                </div>
+
+                <!-- Showcase Carousel Slider Container -->
+                <div class="relative max-w-5xl mx-auto">
+                    <!-- Slide View Area -->
+                    <div class="overflow-hidden rounded-3xl bg-white border border-zinc-200/90 shadow-xl shadow-zinc-950/5">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[460px]">
+                            <!-- Left: Large Image Preview -->
+                            <div class="lg:col-span-7 relative min-h-[280px] sm:min-h-[360px] lg:min-h-[460px] bg-zinc-900 overflow-hidden group">
+                                <img
+                                    :src="currentSlide.image_url"
+                                    :alt="currentSlide.title"
+                                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    @error="$event.target.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'"
+                                />
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs">
+                                    <span v-if="currentSlide.tag" class="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white font-bold text-[11px] border border-white/30">
+                                        {{ currentSlide.tag }}
+                                    </span>
+                                    <span class="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md text-zinc-200 font-mono text-[11px]">
+                                        {{ activeSlideIndex + 1 }} / {{ slides.length }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Right: Slide Information & Description -->
+                            <div class="lg:col-span-5 p-7 sm:p-10 flex flex-col justify-between text-left space-y-6">
+                                <div class="space-y-4">
+                                    <div class="space-y-1">
+                                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider block">
+                                            {{ currentSlide.subtitle || 'Portofolio Terverifikasi' }}
+                                        </span>
+                                        <h3 class="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight leading-snug">
+                                            {{ currentSlide.title }}
+                                        </h3>
+                                    </div>
+
+                                    <p class="text-sm text-zinc-600 leading-relaxed font-normal whitespace-pre-line">
+                                        {{ currentSlide.description }}
+                                    </p>
+                                </div>
+
+                                <div class="pt-4 border-t border-zinc-200/80 space-y-4">
+                                    <div class="flex items-center gap-3">
+                                        <a
+                                            v-if="currentSlide.link"
+                                            :href="currentSlide.link"
+                                            class="px-5 py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold inline-flex items-center gap-2 transition-all shadow-md min-h-[44px]"
+                                        >
+                                            <span>Lihat Contoh Ini</span>
+                                            <span>&rarr;</span>
+                                        </a>
+                                        <Link
+                                            href="/register"
+                                            class="px-4 py-3 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold inline-flex items-center transition-all min-h-[44px]"
+                                        >
+                                            Buat Milikmu
+                                        </Link>
+                                    </div>
+
+                                    <!-- Navigation Arrow Buttons & Dots -->
+                                    <div class="flex items-center justify-between pt-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <button
+                                                v-for="(_, dIdx) in slides"
+                                                :key="dIdx"
+                                                @click="goToSlide(dIdx)"
+                                                type="button"
+                                                class="h-2 rounded-full transition-all"
+                                                :class="activeSlideIndex === dIdx ? 'w-7 bg-blue-600' : 'w-2 bg-zinc-300 hover:bg-zinc-400'"
+                                                :aria-label="`Slide ${dIdx + 1}`"
+                                            ></button>
+                                        </div>
+
+                                        <div class="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                @click="prevSlide"
+                                                class="w-10 h-10 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-2xs"
+                                                aria-label="Slide Sebelumnya"
+                                            >
+                                                &larr;
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="nextSlide"
+                                                class="w-10 h-10 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-2xs"
+                                                aria-label="Slide Selanjutnya"
+                                            >
+                                                &rarr;
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- 03 — MEET YOUR KEYCHAIN -->
         <section id="keychain" class="py-20 md:py-28 bg-white border-y border-zinc-200/80">
             <div class="max-w-7xl mx-auto px-6 text-center space-y-12">
@@ -431,8 +664,16 @@ function triggerKeychainTap() {
 
                             <!-- Pricing -->
                             <div class="py-3 border-y border-zinc-100 flex items-baseline gap-2">
-                                <span class="text-3xl font-black text-zinc-950 font-mono">Rp 49.000</span>
-                                <span class="text-xs text-zinc-500 font-medium">/ tahun</span>
+                                <template v-if="freeModeEnabled">
+                                    <span class="text-3xl font-black text-emerald-600 font-mono">GRATIS</span>
+                                    <span class="text-xs text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                        Promo Bebas Biaya
+                                    </span>
+                                </template>
+                                <template v-else>
+                                    <span class="text-3xl font-black text-zinc-950 font-mono">Rp 49.000</span>
+                                    <span class="text-xs text-zinc-500 font-medium">/ tahun</span>
+                                </template>
                             </div>
 
                             <!-- What's Included -->
@@ -467,7 +708,7 @@ function triggerKeychainTap() {
                             href="/register"
                             class="w-full py-3.5 px-4 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold text-xs flex items-center justify-center gap-2 transition-all min-h-[44px]"
                         >
-                            <span>Mulai Portofolio Pro</span>
+                            <span>{{ freeModeEnabled ? 'Mulai Portofolio Pro Gratis' : 'Mulai Portofolio Pro' }}</span>
                             <span>&rarr;</span>
                         </Link>
                     </div>
@@ -617,6 +858,91 @@ function triggerKeychainTap() {
             </div>
         </section>
 
+        <!-- 04.5 — CARA PEMESANAN (DIATUR VIA ADMIN) -->
+        <section id="cara-pesan" class="py-20 md:py-28 bg-white border-b border-zinc-200/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+                <div class="max-w-3xl mx-auto text-center space-y-4">
+                    <span class="px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-xs font-mono font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
+                        <LunouIcon name="sparkles" className="w-3.5 h-3.5" />
+                        <span>Alur Pemesanan & Aktivasi</span>
+                    </span>
+                    <h2 class="text-3xl sm:text-5xl font-black text-zinc-950 tracking-tight leading-tight">
+                        Cara Mudah Memesan & Mulai Berkarya
+                    </h2>
+                    <p class="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
+                        Proses cepat, transparan, dan terverifikasi aman. Hanya butuh beberapa menit sampai karyamu tayang secara publik.
+                    </p>
+                </div>
+
+                <!-- Steps Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+                    <div
+                        v-for="(st, stIndex) in (orderSteps && orderSteps.length > 0 ? orderSteps : defaultOrderStepsList)"
+                        :key="stIndex"
+                        class="p-6 sm:p-7 rounded-3xl bg-[#fafbfc] border border-zinc-200/90 shadow-2xs hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between space-y-5 text-left relative group"
+                    >
+                        <div class="space-y-4">
+                            <!-- Step Number Badge -->
+                            <div class="flex items-center justify-between">
+                                <span class="w-10 h-10 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
+                                    {{ st.step_number || stIndex + 1 }}
+                                </span>
+                                <span class="px-2.5 py-1 rounded-full bg-white border border-zinc-200 text-zinc-700 text-[10px] font-bold uppercase tracking-wider">
+                                    {{ st.badge || `Langkah ${stIndex + 1}` }}
+                                </span>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-lg font-bold text-zinc-950 tracking-tight leading-snug">
+                                    {{ st.title }}
+                                </h3>
+                                <p class="text-xs text-zinc-600 leading-relaxed font-normal">
+                                    {{ st.description }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-zinc-200/60 flex items-center justify-between text-xs font-semibold text-blue-600">
+                            <span>Tahap {{ st.step_number || stIndex + 1 }}</span>
+                            <span class="text-zinc-400 group-hover:translate-x-1 transition-transform">&rarr;</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Banner under Cara Pesan -->
+                <div class="p-7 sm:p-9 rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-blue-950 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 text-left">
+                    <div class="space-y-1.5 max-w-xl">
+                        <span class="text-[11px] font-bold text-blue-400 uppercase tracking-wider">Siap Memulai Sekarang?</span>
+                        <h4 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+                            Wujudkan Website Portofolio Impianmu Hari Ini
+                        </h4>
+                        <p class="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                            {{ freeModeEnabled ? 'Kabar gembira! Mode Akses Bebas Biaya sedang aktif. Kamu dapat langsung menikmati fitur Pro secara gratis tanpa biaya.' : 'Dapatkan akses editor portofolio visual ala Canva dan opsi pengiriman gantungan kunci YOIMO NFC ke rumahmu.' }}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto">
+                        <Link
+                            href="/register"
+                            class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white hover:bg-zinc-100 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all min-h-[44px]"
+                        >
+                            <span>Daftar Sekarang</span>
+                            <span>&rarr;</span>
+                        </Link>
+                        <a
+                            href="https://wa.me/628123456789?text=Halo%20LUNOU,%20saya%20ingin%20tanya%20tentang%20pemesanan%20portofolio%20dan%20NFC"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs flex items-center justify-center gap-2 transition-all min-h-[44px]"
+                        >
+                            <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.203c.044.072.044.419-.1.824z"/></svg>
+                            <span>Bantuan CS</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- 05 — MADE FOR EVERY STORY -->
         <section id="stories" class="py-20 md:py-28 bg-white border-b border-zinc-200/80">
             <div class="max-w-7xl mx-auto px-6 space-y-12">
@@ -709,19 +1035,90 @@ function triggerKeychainTap() {
             </div>
         </section>
 
-        <!-- Footer -->
-        <footer class="border-t border-zinc-200 py-10 bg-white text-center text-xs text-zinc-500">
-            <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-2.5">
-                    <ApplicationLogo className="w-6 h-6 object-contain" variant="1" />
-                    <span class="font-black text-zinc-900 tracking-tight">me.myoin.id</span>
-                    <span class="text-zinc-400">· part of lunou</span>
+        <!-- 07 — DUKUNGAN & DONASI SAWERIA -->
+        <section id="donasi" class="py-16 md:py-20 bg-[#fafbfc] border-t border-zinc-200/80">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 text-xs font-bold">
+                    <svg class="w-4 h-4 text-amber-500 fill-amber-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span>DUKUNGAN & APRESIASI KREATOR</span>
                 </div>
 
-                <div class="flex items-center gap-6 text-zinc-500 text-xs">
-                    <Link href="/register" class="hover:text-zinc-950">Daftar</Link>
-                    <Link href="/login" class="hover:text-zinc-950">Masuk</Link>
-                    <Link href="/tri" class="hover:text-zinc-950">Contoh Profil</Link>
+                <div class="space-y-3">
+                    <h2 class="text-2xl sm:text-4xl font-black text-zinc-950 tracking-tight">
+                        Dukung & Donasi untuk Pengembangan Platform
+                    </h2>
+                    <p class="text-sm sm:text-base text-zinc-600 max-w-xl mx-auto leading-relaxed">
+                        Suka dengan platform me.myoin.id? Kamu bisa mentraktir kopi atau memberikan dukungan donasi langsung melalui Saweria agar kami dapat terus menghadirkan pembaruan terbaik.
+                    </p>
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a
+                        :href="saweriaUrl || 'https://saweria.co/Try3'"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all inline-flex items-center gap-2.5 min-h-[44px]"
+                    >
+                        <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span>Dukung Kami di Saweria (saweria.co/Try3)</span>
+                        <span>&rarr;</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-zinc-200 py-12 bg-white text-xs text-zinc-500">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+                    <div class="space-y-1.5 flex flex-col items-center md:items-start">
+                        <Link href="/" class="flex items-center gap-2.5">
+                            <ApplicationLogo className="w-7 h-7 object-contain" variant="1" />
+                            <span class="font-black text-zinc-900 tracking-tight text-base">me.myoin.id</span>
+                            <span class="text-zinc-400 text-xs">· part of lunou</span>
+                        </Link>
+                        <p class="text-[11px] text-zinc-400 max-w-sm">
+                            Platform identitas digital personal, web portofolio builder ala Canva, dan gantungan kunci pintar YOIMO NFC.
+                        </p>
+                    </div>
+
+                    <!-- Footer Navigation Columns / Links -->
+                    <div class="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-2 text-zinc-600 font-medium text-xs">
+                        <Link href="/register" class="hover:text-zinc-950 transition-colors">Daftar Akun</Link>
+                        <Link href="/login" class="hover:text-zinc-950 transition-colors">Masuk</Link>
+                        <a href="#showcase" class="hover:text-zinc-950 transition-colors">Contoh Karya</a>
+                        <a href="#cara-pesan" class="hover:text-zinc-950 transition-colors">Cara Pesan</a>
+                        <Link href="/tri" class="hover:text-zinc-950 transition-colors">Contoh Profil (@tri)</Link>
+                        <Link href="/p/tri" class="hover:text-zinc-950 transition-colors">Contoh Portofolio (/p/tri)</Link>
+                        <Link href="/syarat-ketentuan" class="hover:text-zinc-950 font-bold text-zinc-800 transition-colors">Syarat & Ketentuan</Link>
+                        <Link href="/syarat-ketentuan" class="hover:text-zinc-950 font-bold text-zinc-800 transition-colors">Kebijakan Privasi</Link>
+                        <a
+                            :href="saweriaUrl || 'https://saweria.co/Try3'"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-amber-600 hover:text-amber-700 font-bold inline-flex items-center gap-1 transition-colors"
+                        >
+                            <svg class="w-3.5 h-3.5 text-amber-500 fill-amber-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span>Donasi Saweria</span>
+                        </a>
+                        <a
+                            href="https://wa.me/628123456789?text=Halo%20LUNOU,%20saya%20butuh%20bantuan"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:text-emerald-700 text-emerald-600 font-bold inline-flex items-center gap-1 transition-colors"
+                        >
+                            <span>WhatsApp Bantuan</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-400">
+                    <div>
+                        &copy; {{ new Date().getFullYear() }} me.myoin.id · part of lunou. Hak Cipta Dilindungi Undang-Undang.
+                    </div>
+                    <div>
+                        Keamanan Terenkripsi AES-256 · Tanpa Iklan Pihak Ketiga
+                    </div>
                 </div>
             </div>
         </footer>

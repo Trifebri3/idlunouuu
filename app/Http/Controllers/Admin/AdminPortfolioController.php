@@ -302,7 +302,7 @@ class AdminPortfolioController extends Controller
     }
 
     /**
-     * Update global platform settings & Terms of Service.
+     * Update global platform settings, Free Mode, and Terms of Service.
      */
     public function updateSettings(Request $request): RedirectResponse
     {
@@ -310,12 +310,111 @@ class AdminPortfolioController extends Controller
             'max_pdf_files' => ['required', 'integer', 'min:1', 'max:50'],
             'max_pdf_size_mb' => ['required', 'integer', 'min:1', 'max:50'],
             'terms_and_conditions' => ['nullable', 'string'],
+            'free_mode_enabled' => ['nullable', 'boolean'],
+            'saweria_url' => ['nullable', 'string', 'max:255'],
         ]);
 
         PortfolioSetting::set('max_pdf_files', $validated['max_pdf_files']);
         PortfolioSetting::set('max_pdf_size_mb', $validated['max_pdf_size_mb']);
         PortfolioSetting::set('terms_and_conditions', $validated['terms_and_conditions'] ?? '');
+        PortfolioSetting::set('free_mode_enabled', (bool) ($validated['free_mode_enabled'] ?? false));
 
-        return back()->with('success', 'Pengaturan global & syarat ketentuan platform berhasil disimpan.');
+        $saweriaUrl = ! empty($validated['saweria_url'])
+            ? $validated['saweria_url']
+            : PortfolioSetting::get('saweria_url', 'https://saweria.co/Try3');
+        PortfolioSetting::set('saweria_url', $saweriaUrl);
+
+        AuditLog::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'admin_portfolio_settings_updated',
+            'target_type' => 'portfolio_setting',
+            'target_id' => 1,
+            'metadata' => [
+                'free_mode_enabled' => (bool) ($validated['free_mode_enabled'] ?? false),
+                'saweria_url' => $saweriaUrl,
+            ],
+        ]);
+
+        return back()->with('success', 'Pengaturan global, mode gratis, dan donasi Saweria berhasil disimpan.');
+    }
+
+    /**
+     * Quick 1-click toggle to bypass all prices (make everything free).
+     */
+    public function toggleFreeMode(Request $request): RedirectResponse
+    {
+        $current = (bool) PortfolioSetting::get('free_mode_enabled', false);
+        $newStatus = ! $current;
+
+        PortfolioSetting::set('free_mode_enabled', $newStatus);
+
+        AuditLog::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'admin_portfolio_toggle_free_mode',
+            'target_type' => 'portfolio_setting',
+            'target_id' => 1,
+            'metadata' => ['free_mode_enabled' => $newStatus],
+        ]);
+
+        $msg = $newStatus
+            ? 'MODE GRATIS DIAKTIFKAN: Seluruh harga kini Rp 0 (Bypass gratis). Semua pengguna dapat langsung mengakses portofolio pro!'
+            : 'Mode gratis dinonaktifkan: Seluruh harga kembali normal sesuai paket.';
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Update public showcase slides (photos, titles, descriptions).
+     */
+    public function updateSlides(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'slides' => ['required', 'array'],
+            'slides.*.title' => ['required', 'string', 'max:200'],
+            'slides.*.subtitle' => ['nullable', 'string', 'max:200'],
+            'slides.*.image_url' => ['required', 'string', 'max:500'],
+            'slides.*.description' => ['required', 'string', 'max:1000'],
+            'slides.*.tag' => ['nullable', 'string', 'max:100'],
+            'slides.*.link' => ['nullable', 'string', 'max:300'],
+        ]);
+
+        PortfolioSetting::set('showcase_slides', $validated['slides']);
+
+        AuditLog::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'admin_portfolio_slides_updated',
+            'target_type' => 'portfolio_setting',
+            'target_id' => 1,
+            'metadata' => ['slide_count' => count($validated['slides'])],
+        ]);
+
+        return back()->with('success', 'Slide contoh karya & foto produk berhasil diperbarui untuk halaman utama.');
+    }
+
+    /**
+     * Update order steps (cara pemesanan).
+     */
+    public function updateOrderSteps(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'steps' => ['required', 'array'],
+            'steps.*.step_number' => ['required', 'integer', 'min:1'],
+            'steps.*.title' => ['required', 'string', 'max:200'],
+            'steps.*.description' => ['required', 'string', 'max:1000'],
+            'steps.*.badge' => ['nullable', 'string', 'max:100'],
+            'steps.*.icon' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        PortfolioSetting::set('order_steps', $validated['steps']);
+
+        AuditLog::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'admin_portfolio_order_steps_updated',
+            'target_type' => 'portfolio_setting',
+            'target_id' => 1,
+            'metadata' => ['step_count' => count($validated['steps'])],
+        ]);
+
+        return back()->with('success', 'Alur Cara Pemesanan berhasil diperbarui untuk halaman utama.');
     }
 }

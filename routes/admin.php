@@ -46,3 +46,6 @@ Route::delete('/portfolio/payment-methods/{method}', [AdminPortfolioController::
 Route::post('/portfolio/orders/{order}/verify', [AdminPortfolioController::class, 'verifyPayment'])->name('portfolio.orders.verify');
 Route::post('/portfolio/users/{user}/entitlement', [AdminPortfolioController::class, 'manageEntitlement'])->name('portfolio.users.entitlement');
 Route::post('/portfolio/settings', [AdminPortfolioController::class, 'updateSettings'])->name('portfolio.settings.update');
+Route::post('/portfolio/toggle-free-mode', [AdminPortfolioController::class, 'toggleFreeMode'])->name('portfolio.toggle-free-mode');
+Route::post('/portfolio/slides', [AdminPortfolioController::class, 'updateSlides'])->name('portfolio.slides.update');
+Route::post('/portfolio/order-steps', [AdminPortfolioController::class, 'updateOrderSteps'])->name('portfolio.order-steps.update');
