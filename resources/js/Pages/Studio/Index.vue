@@ -288,7 +288,7 @@ const allPlatforms = [
     { id: 'youtube', name: 'YouTube', icon: 'youtube', prefix: 'https://youtube.com/@', placeholder: 'channel_kamu', hint: 'Kanal video & kreasi visual' },
     { id: 'threads', name: 'Threads', icon: 'threads', prefix: 'https://threads.net/@', placeholder: 'username_kamu', hint: 'Diskusi & cerita singkat harian' },
     { id: 'x', name: 'X / Twitter', icon: 'x', prefix: 'https://x.com/', placeholder: 'username_kamu', hint: 'Opini, kurasi ide & obrolan' },
-    { id: 'whatsapp', name: 'WhatsApp', icon: 'whatsapp', prefix: 'https://wa.me/', placeholder: '628123456789', hint: 'Obrolan personal & kontak langsung' },
+    { id: 'whatsapp', name: 'WhatsApp', icon: 'whatsapp', prefix: 'https://wa.me/', placeholder: '6285862319524', hint: 'Obrolan personal & kontak langsung' },
     { id: 'spotify', name: 'Spotify', icon: 'spotify', prefix: 'https://open.spotify.com/', placeholder: 'user/playlist/track', hint: 'Playlist, lagu, atau podcast favorit' },
     { id: 'github', name: 'GitHub', icon: 'github', prefix: 'https://github.com/', placeholder: 'username_kamu', hint: 'Proyek open-source & repository' },
     { id: 'behance', name: 'Behance', icon: 'behance', prefix: 'https://behance.net/', placeholder: 'portofolio_kamu', hint: 'Showcase desain & visual art' },
@@ -1619,6 +1619,26 @@ const currentThemeClass = computed(() => {
                             <p class="text-zinc-600 text-xs">
                                 Ceritakan apa saja dengan jujur—tanpa sungkan dan tanpa ragu. Setiap kalimat yang kamu kirimkan di bawah ini akan kami baca langsung dengan penuh rasa hormat dan terima kasih mendalam. 🙏✨
                             </p>
+
+                            <!-- Direct WhatsApp & Email Buttons -->
+                            <div class="pt-2 flex flex-wrap items-center gap-2.5">
+                                <a
+                                    href="https://wa.me/6285862319524?text=Halo%20Admin%20LUNOU,%20saya%20ingin%20berbicara%20langsung"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs transition-all"
+                                >
+                                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.203c.044.072.044.419-.1.824z"/></svg>
+                                    <span>WhatsApp: +62 858-6231-9524</span>
+                                </a>
+                                <a
+                                    href="mailto:hello@yotainovasi.id"
+                                    class="px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-100 text-zinc-800 border border-zinc-200 font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs transition-all"
+                                >
+                                    <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    <span>hello@yotainovasi.id</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
@@ -1715,7 +1735,7 @@ const currentThemeClass = computed(() => {
                                 type="text"
                                 v-model="feedbackForm.contact"
                                 class="w-full bg-zinc-50 border border-zinc-200 focus:border-zinc-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:outline-none transition-all"
-                                placeholder="Contoh: 08123456789 atau nama@email.com (Boleh dikosongkan jika ingin anonim)"
+                                placeholder="Contoh: 085862319524 atau hello@yotainovasi.id (Boleh dikosongkan jika ingin anonim)"
                             />
                             <p class="text-[11px] text-zinc-500 leading-snug">
                                 Hanya jika kamu berkenan disapa balik saat temuanmu sudah kami perbaiki atau sekadar ucapan terima kasih personal dari pengembang.

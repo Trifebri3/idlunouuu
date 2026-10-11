@@ -83,7 +83,7 @@ class LunouSeeder extends Seeder
                 'type' => 'contact',
                 'title' => 'WhatsApp Support',
                 'content' => 'Hubungi Customer Care LUNOU',
-                'url' => 'https://wa.me/628123456789',
+                'url' => 'https://wa.me/6285862319524',
                 'settings' => ['icon' => 'whatsapp'],
                 'is_visible' => true,
             ]

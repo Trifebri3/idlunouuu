@@ -415,8 +415,8 @@ function addNewPage(pageType = 'custom') {
             defaultContent = {
                 heading: 'Mari Berkolaborasi',
                 description: 'Terbuka untuk diskusi proyek baru, kolaborasi kreatif, atau peluang kerja sama.',
-                email: 'halo@lunou.tech',
-                phone: '+62 812-3456-7890',
+                email: 'hello@yotainovasi.id',
+                phone: '+62 858-6231-9524',
                 location: 'Indonesia',
             };
             break;

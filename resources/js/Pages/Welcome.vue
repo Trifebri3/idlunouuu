@@ -930,7 +930,7 @@ const defaultOrderStepsList = [
                             <span>&rarr;</span>
                         </Link>
                         <a
-                            href="https://wa.me/628123456789?text=Halo%20LUNOU,%20saya%20ingin%20tanya%20tentang%20pemesanan%20portofolio%20dan%20NFC"
+                            href="https://wa.me/6285862319524?text=Halo%20LUNOU,%20saya%20ingin%20tanya%20tentang%20pemesanan%20portofolio%20dan%20NFC"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs flex items-center justify-center gap-2 transition-all min-h-[44px]"
@@ -1102,12 +1102,18 @@ const defaultOrderStepsList = [
                             <span>Donasi Saweria</span>
                         </a>
                         <a
-                            href="https://wa.me/628123456789?text=Halo%20LUNOU,%20saya%20butuh%20bantuan"
+                            href="https://wa.me/6285862319524?text=Halo%20LUNOU,%20saya%20butuh%20bantuan"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="hover:text-emerald-700 text-emerald-600 font-bold inline-flex items-center gap-1 transition-colors"
                         >
-                            <span>WhatsApp Bantuan</span>
+                            <span>WhatsApp: +62 858-6231-9524</span>
+                        </a>
+                        <a
+                            href="mailto:hello@yotainovasi.id"
+                            class="hover:text-zinc-950 text-zinc-600 font-semibold inline-flex items-center gap-1 transition-colors"
+                        >
+                            <span>Email: hello@yotainovasi.id</span>
                         </a>
                     </div>
                 </div>
