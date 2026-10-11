@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Profile;
 use App\Models\ProfileEvent;
+use App\Services\ImageOptimizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -113,13 +114,71 @@ class StudioController extends Controller
             'display_name' => ['required', 'string', 'max:100'],
             'bio' => ['nullable', 'string', 'max:500'],
             'avatar' => ['nullable', 'string', 'max:1000'],
+            'avatar_file' => ['nullable', 'file', 'mimes:jpeg,png,jpg,webp,gif', 'max:10240'],
             'theme' => ['required', 'string', 'max:50'],
             'is_published' => ['required', 'boolean'],
         ]);
 
+        if ($request->hasFile('avatar_file')) {
+            $optimized = ImageOptimizer::optimizeAndStore(
+                $request->file('avatar_file'),
+                'avatars',
+                maxWidth: 800,
+                maxHeight: 800,
+                quality: 82
+            );
+            $validated['avatar'] = $optimized['url'];
+        }
+
+        unset($validated['avatar_file']);
         $profile->update($validated);
 
         return back()->with('success', 'Profil berhasil diperbarui.');
+    }
+
+    /**
+     * Dedicated asynchronous avatar upload and compression endpoint.
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'file', 'mimes:jpeg,png,jpg,webp,gif', 'max:10240'],
+        ]);
+
+        $user = $request->user();
+        $profile = $user->profile ?? Profile::create([
+            'user_id' => $user->id,
+            'username' => strtolower(Str::slug($user->name ?: 'user'.$user->id, '')),
+            'display_name' => $user->name,
+            'bio' => 'Selamat datang di profil LUNOU saya.',
+            'avatar' => $user->avatar,
+            'theme' => 'clean-light',
+            'is_published' => true,
+        ]);
+
+        $optimized = ImageOptimizer::optimizeAndStore(
+            $request->file('avatar'),
+            'avatars',
+            maxWidth: 800,
+            maxHeight: 800,
+            quality: 82
+        );
+
+        $profile->update([
+            'avatar' => $optimized['url'],
+        ]);
+
+        $ratio = $optimized['compression_ratio'] ?? 0;
+        $message = $ratio > 0
+            ? "Foto profil berhasil diunggah dan dikompresi ke WebP (hemat {$ratio}%)."
+            : 'Foto profil berhasil diunggah dan dioptimalkan.';
+
+        return response()->json([
+            'success' => true,
+            'avatar_url' => $optimized['url'],
+            'optimized' => $optimized,
+            'message' => $message,
+        ]);
     }
 
     /**

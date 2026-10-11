@@ -17,6 +17,10 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    portfolio: {
+        type: Object,
+        default: null,
+    },
 });
 
 const showShareModal = ref(false);
@@ -24,8 +28,23 @@ const showNfcBanner = ref(false);
 const activeNfcCard = ref('');
 const copied = ref(false);
 const currentUrl = typeof window !== 'undefined' ? window.location.href : `https://lunou.id/${props.profile.username}`;
+const showPortfolioScrollPopup = ref(false);
+const dismissedPopup = ref(false);
 
 onMounted(() => {
+    // Scroll listener for portfolio teaser popup
+    if (props.portfolio && typeof window !== 'undefined') {
+        const handleScroll = () => {
+            if (dismissedPopup.value) return;
+            if (window.scrollY > 150) {
+                showPortfolioScrollPopup.value = true;
+            } else {
+                showPortfolioScrollPopup.value = false;
+            }
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const isFromNfc = props.isNfcTap || (urlParams && urlParams.get('from') === 'nfc');
     const cardId = props.nfcCardId || (urlParams ? urlParams.get('card') : '');
@@ -269,6 +288,39 @@ const themeTokens = computed(() => {
                         <svg class="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </div>
                 </template>
+
+                <!-- PORTFOLIO TEASER CARD AT THE BOTTOM (Accessible via Scroll) -->
+                <div v-if="portfolio" class="mt-8 pt-6 border-t border-zinc-200/60 w-full">
+                    <a
+                        :href="portfolio.url"
+                        class="block p-5 rounded-3xl bg-gradient-to-br from-white via-blue-50/40 to-indigo-50/20 border border-blue-200/80 shadow-xs hover:shadow-md transition-all group text-left relative overflow-hidden"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                <span class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">Web Portofolio & Karya Resmi</span>
+                            </div>
+                            <span class="text-xs text-blue-600 font-bold group-hover:translate-x-1 transition-transform">&rarr;</span>
+                        </div>
+
+                        <div class="mt-2.5 space-y-1">
+                            <h3 class="text-base font-extrabold text-zinc-950 group-hover:text-blue-600 transition-colors">
+                                {{ portfolio.title }}
+                            </h3>
+                            <p class="text-xs text-zinc-600 line-clamp-2">
+                                Buka website portofolio interaktif, studi kasus karya, galeri foto, dan buku digital flipbook resmi.
+                            </p>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-blue-100/80 flex items-center justify-between text-[11px] text-zinc-500">
+                            <span class="font-mono text-blue-600 font-semibold">/p/{{ portfolio.slug }}</span>
+                            <span class="flex items-center gap-1 font-semibold text-zinc-800">
+                                <span>Buka Portofolio</span>
+                                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </span>
+                        </div>
+                    </a>
+                </div>
             </div>
         </main>
 
@@ -276,7 +328,7 @@ const themeTokens = computed(() => {
         <footer class="mt-12 text-center flex flex-col items-center gap-2 relative z-10">
             <Link href="/" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 hover:bg-white border border-zinc-200 text-xs font-medium transition-all shadow-xs group">
                 <ApplicationLogo className="w-4 h-4" variant="1" />
-                <span class="text-zinc-700 font-semibold group-hover:text-zinc-950">Buat Profil LUNOU Anda &rarr;</span>
+                <span class="text-zinc-700 font-semibold group-hover:text-zinc-950">me.myoin.id · part of lunou &rarr;</span>
             </Link>
             <span class="text-[10px] tracking-widest uppercase text-zinc-400 font-mono">YOIMO NFC POWERED IDENTITY</span>
         </footer>
@@ -351,5 +403,48 @@ const themeTokens = computed(() => {
                 </div>
             </div>
         </div>
+
+        <!-- FLOATING SCROLL POPUP: Buka Web Portofolio (Aktif saat di-scroll) -->
+        <transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="transform translate-y-8 opacity-0 scale-95"
+            enter-to-class="transform translate-y-0 opacity-100 scale-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="transform translate-y-0 opacity-100 scale-100"
+            leave-to-class="transform translate-y-8 opacity-0 scale-95"
+        >
+            <div
+                v-if="portfolio && showPortfolioScrollPopup && !dismissedPopup"
+                class="fixed bottom-6 right-4 sm:right-6 z-50 max-w-xs w-full bg-zinc-950/95 text-white backdrop-blur-md border border-zinc-800 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between gap-3"
+            >
+                <a :href="portfolio.url" class="flex items-center gap-2.5 min-w-0 flex-1 group text-left">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-sm">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Web Portofolio</div>
+                        <div class="text-xs font-bold text-white truncate group-hover:text-blue-300 transition-colors">
+                            {{ portfolio.title }}
+                        </div>
+                    </div>
+                </a>
+
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <a
+                        :href="portfolio.url"
+                        class="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] transition-colors"
+                    >
+                        Buka &rarr;
+                    </a>
+                    <button
+                        @click="dismissedPopup = true"
+                        class="p-1 rounded-lg text-zinc-400 hover:text-white transition-colors text-xs font-bold"
+                        title="Tutup pop-up"
+                    >
+                        &times;
+                    </button>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>

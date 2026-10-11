@@ -67,9 +67,9 @@ function claimNow() {
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
                     <span>Kartu Fisik Terdeteksi dan Belum Terhubung</span>
                 </div>
-                <h1 class="text-2xl font-black text-zinc-950 tracking-tight">Aktivasi Kartu Pintar Anda</h1>
+                <h1 class="text-2xl font-black text-zinc-950 tracking-tight">Hubungkan Kartu NFC Kamu</h1>
                 <p class="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed font-normal">
-                    Hubungkan kartu YOIMO ini ke profil LUNOU Anda. Setelah terhubung, siapapun yang men-tap kartu ini akan langsung diarahkan ke profil digital Anda.
+                    Hubungkan kartu ini ke profil LUNOU kamu. Setelah terhubung, siapa pun yang menempelkan ponselnya ke kartu ini akan langsung membuka profil digitalmu.
                 </p>
             </div>
 
@@ -99,7 +99,7 @@ function claimNow() {
                         class="w-full py-3.5 rounded-2xl bg-zinc-950 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all hover:scale-[1.01]"
                     >
                         <LunouIcon name="card" className="w-4 h-4 text-cyan-400" />
-                        <span>Hubungkan Kartu ke Akun Saya Sekarang</span>
+                        <span>Hubungkan Kartu ke Profilku</span>
                     </button>
                 </template>
 

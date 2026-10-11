@@ -1,12 +1,14 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ComponentController;
 use App\Http\Controllers\NfcDeviceController;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicPortfolioController;
 use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\StudioController;
+use App\Http\Controllers\TermsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Studio Profile & Username
     Route::post('/studio/profile', [StudioController::class, 'update'])->name('studio.profile.update');
+    Route::post('/studio/avatar', [StudioController::class, 'uploadAvatar'])->name('studio.avatar.upload');
     Route::post('/studio/username', [StudioController::class, 'updateUsername'])->name('studio.username.update');
     Route::get('/studio/check-username', [StudioController::class, 'checkUsername'])->name('studio.username.check');
 
@@ -46,17 +49,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/studio/nfc/demo', [NfcDeviceController::class, 'generateDemo'])->name('studio.nfc.demo');
     Route::delete('/studio/nfc/{device}', [NfcDeviceController::class, 'unbind'])->name('studio.nfc.unbind');
 
-    // Super Admin Area
-    Route::get('/admin', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-    Route::patch('/admin/users/{user}/status', [AdminDashboardController::class, 'toggleUserStatus'])->name('admin.users.status');
-    Route::post('/admin/nfc', [AdminDashboardController::class, 'createNfcCard'])->name('admin.nfc.create');
-    Route::post('/admin/nfc/batch', [AdminDashboardController::class, 'batchCreateNfcCards'])->name('admin.nfc.batch');
-    Route::post('/admin/nfc/{device}/assign', [AdminDashboardController::class, 'assignNfcCard'])->name('admin.nfc.assign');
-    Route::delete('/admin/nfc/{device}', [AdminDashboardController::class, 'deleteNfcCard'])->name('admin.nfc.delete');
-    Route::post('/admin/orders/create-offline', [AdminDashboardController::class, 'createOfflineOrder'])->name('admin.orders.create-offline');
-    Route::post('/admin/orders/{order}/connect', [AdminDashboardController::class, 'connectOrderToNfc'])->name('admin.orders.connect');
-    Route::patch('/admin/orders/{order}/verify-payment', [AdminDashboardController::class, 'verifyPayment'])->name('admin.orders.verify-payment');
-    Route::patch('/admin/orders/{order}/status', [AdminDashboardController::class, 'updateOrderStatus'])->name('admin.orders.status');
+    // Web Portfolio Builder & Subscription Management
+    Route::get('/studio/portfolio', [PortfolioController::class, 'index'])->name('studio.portfolio');
+    Route::post('/studio/portfolio/checkout', [PortfolioController::class, 'checkout'])->name('studio.portfolio.checkout');
+    Route::post('/studio/portfolio/validate-voucher', [PortfolioController::class, 'validateVoucher'])->name('studio.portfolio.voucher.validate');
+    Route::post('/studio/portfolio/orders/{order}/payment-proof', [PortfolioController::class, 'submitPaymentProof'])->name('studio.portfolio.orders.payment');
+    Route::post('/studio/portfolio/save', [PortfolioController::class, 'savePortfolio'])->name('studio.portfolio.save');
+    Route::post('/studio/portfolio/publish', [PortfolioController::class, 'togglePublish'])->name('studio.portfolio.publish');
+    Route::post('/studio/portfolio/pages', [PortfolioController::class, 'savePage'])->name('studio.portfolio.pages.save');
+    Route::post('/studio/portfolio/pages/reorder', [PortfolioController::class, 'reorderPages'])->name('studio.portfolio.pages.reorder');
+    Route::delete('/studio/portfolio/pages/{page}', [PortfolioController::class, 'deletePage'])->name('studio.portfolio.pages.delete');
+    Route::post('/studio/portfolio/assets', [PortfolioController::class, 'uploadAsset'])->name('studio.portfolio.assets.upload');
+    Route::delete('/studio/portfolio/assets/{asset}', [PortfolioController::class, 'deleteAsset'])->name('studio.portfolio.assets.delete');
 
     // Existing Breeze profile settings
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -64,7 +68,21 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// 4. NFC Tap Direct Resolution & Activation
+// 4. Super Admin Dedicated Isolated Routes
+Route::middleware(['auth', 'super_admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(base_path('routes/admin.php'));
+
+// 5. Terms of Service & Privacy Platform
+Route::get('/terms', [TermsController::class, 'show'])->name('terms');
+Route::get('/syarat-ketentuan', [TermsController::class, 'show'])->name('terms.id');
+
+// 6. Public Portfolio Publisher (/p/username)
+Route::get('/p/{username}', [PublicPortfolioController::class, 'show'])->name('portfolio.public');
+Route::get('/p/{username}/download/{asset}', [PublicPortfolioController::class, 'downloadPdf'])->name('portfolio.download.pdf');
+
+// 7. NFC Tap Direct Resolution & Activation
 Route::get('/nfc/{publicId}/activate', [NfcDeviceController::class, 'showActivation'])->name('nfc.activate');
 Route::post('/nfc/{publicId}/activate', [NfcDeviceController::class, 'claimDirect'])->name('nfc.activate.claim');
 Route::get('/nfc/{publicId}', [PublicProfileController::class, 'nfcTap'])->name('nfc.tap');

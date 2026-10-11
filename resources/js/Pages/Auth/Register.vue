@@ -8,6 +8,7 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    terms: false,
 });
 
 const submit = () => {
@@ -19,7 +20,7 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Daftar · Buat Ruang Personal LUNOU" />
+        <Head title="Daftar · Buat Profil LUNOU" />
 
         <!-- Segmented Tab Switcher -->
         <div class="flex items-center p-1 bg-zinc-100 rounded-2xl">
@@ -39,8 +40,8 @@ const submit = () => {
 
         <!-- Heading Text -->
         <div class="space-y-1">
-            <h2 class="text-xl font-black text-zinc-950 tracking-tight">Buat ruang milikmu.</h2>
-            <p class="text-xs text-zinc-500">Satu profil untuk semua hal yang ingin kamu bagikan.</p>
+            <h2 class="text-xl font-black text-zinc-950 tracking-tight">Yuk, kenalkan dirimu.</h2>
+            <p class="text-xs text-zinc-500 leading-relaxed">Mulai dengan nama dan beberapa informasi sederhana. Kamu bisa melengkapinya nanti.</p>
         </div>
 
         <form @submit.prevent="submit" class="space-y-3.5">
@@ -101,12 +102,45 @@ const submit = () => {
                 <InputError class="mt-1" :message="form.errors.password_confirmation" />
             </div>
 
+            <!-- Syarat dan Ketentuan Wajib Ceklis -->
+            <div class="pt-1.5 space-y-1">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                        id="terms"
+                        type="checkbox"
+                        v-model="form.terms"
+                        required
+                        class="mt-0.5 rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 cursor-pointer"
+                    />
+                    <span class="text-xs text-zinc-600 leading-snug">
+                        Saya menyetujui
+                        <a
+                            href="/syarat-ketentuan"
+                            target="_blank"
+                            class="font-bold text-zinc-950 underline hover:text-blue-600 transition-colors"
+                        >
+                            Syarat dan Ketentuan
+                        </a>
+                        serta
+                        <a
+                            href="/syarat-ketentuan#privacy"
+                            target="_blank"
+                            class="font-bold text-zinc-950 underline hover:text-blue-600 transition-colors"
+                        >
+                            Kebijakan Privasi
+                        </a>
+                        layanan LUNOU.
+                    </span>
+                </label>
+                <InputError class="mt-1" :message="form.errors.terms" />
+            </div>
+
             <button
                 type="submit"
-                :disabled="form.processing"
-                class="w-full py-3 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-sm hover:shadow transition-all disabled:opacity-50 mt-2"
+                :disabled="form.processing || !form.terms"
+                class="w-full py-3 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 min-h-[44px]"
             >
-                {{ form.processing ? 'Menyiapkan ruangmu...' : 'Daftar dengan Email' }}
+                {{ form.processing ? 'Menyiapkan profilmu...' : 'Mulai Membuat Profil' }}
             </button>
         </form>
 
@@ -132,10 +166,5 @@ const submit = () => {
         >
             Masuk Cepat Akun Demo (@tri)
         </a>
-
-        <!-- Terms Footer -->
-        <p class="text-[11px] text-zinc-400 text-center leading-relaxed">
-            Dengan melanjutkan, kamu menyetujui Ketentuan Layanan dan Kebijakan Privasi LUNOU.
-        </p>
     </GuestLayout>
 </template>

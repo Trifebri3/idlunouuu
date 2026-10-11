@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\NfcDevice;
 use App\Models\NfcOrder;
+use App\Services\ImageOptimizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,8 +33,14 @@ class NfcDeviceController extends Controller
 
         $customImagePath = $validated['custom_image'] ?? null;
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('keychains', 'public');
-            $customImagePath = '/storage/'.$path;
+            $optimized = ImageOptimizer::optimizeAndStore(
+                $request->file('image'),
+                'keychains',
+                maxWidth: 1200,
+                maxHeight: 1200,
+                quality: 85
+            );
+            $customImagePath = $optimized['url'];
         }
 
         $orderNumber = 'LUNOU-'.date('ymd').'-'.strtoupper(Str::random(4));

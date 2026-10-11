@@ -59,6 +59,13 @@ class PublicProfileController extends Controller
                 'is_owner' => $isOwner,
                 'components' => $profile->visibleComponents,
             ],
+            'portfolio' => ($profile->user->portfolio && $profile->user->portfolio->is_published) ? [
+                'title' => $profile->user->portfolio->title,
+                'slug' => $profile->user->portfolio->slug,
+                'url' => url('/p/'.$profile->user->portfolio->slug),
+                'views_count' => $profile->user->portfolio->views_count,
+                'pages_count' => $profile->user->portfolio->pages()->count(),
+            ] : null,
             'isNfcTap' => $request->query('from') === 'nfc',
             'nfcCardId' => $request->query('card'),
         ]);

@@ -30,6 +30,10 @@ class NfcOrder extends Model
     {
         return [
             'amount' => 'integer',
+            'card_printed_name' => 'encrypted',
+            'phone_or_whatsapp' => 'encrypted',
+            'shipping_address' => 'encrypted',
+            'notes' => 'encrypted',
         ];
     }
 

@@ -28,7 +28,7 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Masuk · Ruang Personal LUNOU" />
+        <Head title="Masuk · Kelola Profil LUNOU" />
 
         <!-- Segmented Tab Switcher -->
         <div class="flex items-center p-1 bg-zinc-100 rounded-2xl">
@@ -61,8 +61,8 @@ const submit = () => {
 
         <!-- Heading Text -->
         <div class="space-y-1">
-            <h2 class="text-xl font-black text-zinc-950 tracking-tight">Masuk ke ruang personalmu.</h2>
-            <p class="text-xs text-zinc-500">Lanjutkan ceritamu dan kelola tautan serta gantungan kuncimu di id.lunou.tech.</p>
+            <h2 class="text-xl font-black text-zinc-950 tracking-tight">Selamat datang kembali.</h2>
+            <p class="text-xs text-zinc-500">Masuk untuk mengelola profil, karya, dan tautanmu di me.myoin.id.</p>
         </div>
 
         <form @submit.prevent="submit" class="space-y-3.5">
@@ -114,9 +114,9 @@ const submit = () => {
             <button
                 type="submit"
                 :disabled="form.processing"
-                class="w-full py-3 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-sm hover:shadow transition-all disabled:opacity-50 mt-2"
+                class="w-full py-3 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-sm hover:shadow transition-all disabled:opacity-50 mt-2 min-h-[44px]"
             >
-                {{ form.processing ? 'Membuka ruangmu...' : 'Masuk ke Akun' }}
+                {{ form.processing ? 'Membuka profil...' : 'Masuk ke Akun' }}
             </button>
         </form>
 

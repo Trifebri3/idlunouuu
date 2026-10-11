@@ -27,6 +27,8 @@ class Profile extends Model
     {
         return [
             'is_published' => 'boolean',
+            'display_name' => 'encrypted',
+            'bio' => 'encrypted',
         ];
     }
 

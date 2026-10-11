@@ -281,7 +281,7 @@ class LunouPlatformTest extends TestCase
         $response = $this->get('/budi');
 
         $response->assertStatus(200);
-        $response->assertSee('Budi Santoso (@budi) · LUNOU', false);
+        $response->assertSee('Budi Santoso (@budi) · me.myoin.id', false);
         $response->assertSee('apple-touch-icon', false);
         $response->assertSee('/icon/1.png', false);
         $response->assertSee('manifest.json', false);
@@ -310,11 +310,15 @@ class LunouPlatformTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseHas('nfc_orders', [
             'user_id' => $user->id,
-            'card_printed_name' => 'Siti Nurhaliza',
             'card_variant' => 'matte_black',
             'status' => 'pending',
             'payment_status' => 'pending',
         ]);
+
+        $order = NfcOrder::where('user_id', $user->id)->first();
+        $this->assertNotNull($order);
+        $this->assertEquals('Siti Nurhaliza', $order->card_printed_name);
+        $this->assertEquals('081234567890', $order->phone_or_whatsapp);
     }
 
     public function test_admin_can_connect_unassigned_stock_card_to_user_order(): void
@@ -428,11 +432,14 @@ class LunouPlatformTest extends TestCase
 
         $createResponse->assertRedirect();
         $this->assertDatabaseHas('nfc_orders', [
-            'card_printed_name' => 'Pelanggan WhatsApp',
-            'phone_or_whatsapp' => '085862319524',
             'payment_status' => 'paid',
             'status' => 'processing',
         ]);
+
+        $offlineOrder = NfcOrder::where('payment_status', 'paid')->where('status', 'processing')->latest('id')->first();
+        $this->assertNotNull($offlineOrder);
+        $this->assertEquals('Pelanggan WhatsApp', $offlineOrder->card_printed_name);
+        $this->assertEquals('085862319524', $offlineOrder->phone_or_whatsapp);
 
         // 2. Verify payment for a pending order
         $order = NfcOrder::create([
@@ -456,5 +463,58 @@ class LunouPlatformTest extends TestCase
             'payment_status' => 'paid',
             'status' => 'processing',
         ]);
+    }
+
+    public function test_admin_can_toggle_user_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $targetUser = User::factory()->create(['role' => 'user', 'status' => 'active']);
+
+        $response = $this->actingAs($admin)->patch("/admin/users/{$targetUser->id}/status");
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('users', [
+            'id' => $targetUser->id,
+            'status' => 'suspended',
+        ]);
+    }
+
+    public function test_admin_can_create_and_delete_nfc_card(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        // Create
+        $response = $this->actingAs($admin)->post('/admin/nfc', [
+            'public_id' => 'YOIMO-UNITTEST-01',
+            'label' => 'Test Card',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('nfc_devices', [
+            'public_id' => 'YOIMO-UNITTEST-01',
+            'status' => 'pending',
+        ]);
+
+        $card = NfcDevice::where('public_id', 'YOIMO-UNITTEST-01')->firstOrFail();
+
+        // Delete
+        $deleteResponse = $this->actingAs($admin)->delete("/admin/nfc/{$card->id}");
+        $deleteResponse->assertRedirect();
+        $this->assertDatabaseMissing('nfc_devices', [
+            'id' => $card->id,
+        ]);
+    }
+
+    public function test_admin_can_batch_create_nfc_cards(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $response = $this->actingAs($admin)->post('/admin/nfc/batch', [
+            'count' => 3,
+            'label' => 'Batch Test',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals(3, NfcDevice::where('label', 'Batch Test')->count());
     }
 }

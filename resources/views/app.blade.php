@@ -2,17 +2,17 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
 
         @php
             $profile = $page['props']['profile'] ?? null;
-            $appName = (config('app.name') && config('app.name') !== 'Laravel') ? config('app.name') : 'LUNOU';
+            $appName = (config('app.name') && config('app.name') !== 'Laravel') ? config('app.name') : 'me.myoin.id';
             $pageTitle = $profile
                 ? "{$profile['display_name']} (@{$profile['username']}) · {$appName}"
-                : "{$appName} · Social Identity & NFC Card";
+                : "{$appName} · part of lunou · Social Identity, Portfolio & NFC";
             $pageDescription = $profile
-                ? ($profile['bio'] ?: "Profil identitas digital resmi {$profile['display_name']} di {$appName}. Terhubung via kartu fisik pintar YOIMO NFC.")
-                : 'Platform identitas digital personal dan kartu fisik pintar YOIMO NFC.';
+                ? ($profile['bio'] ?: "Profil identitas digital resmi {$profile['display_name']} di {$appName} (part of lunou). Terhubung via kartu fisik pintar YOIMO NFC.")
+                : 'me.myoin.id (part of lunou) — Platform identitas digital personal, web portofolio builder, dan gantungan kunci pintar NFC.';
             $pageImage = ($profile && !empty($profile['avatar']))
                 ? $profile['avatar']
                 : asset('icon/1.png');
@@ -55,7 +55,7 @@
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased bg-[#fbfbfd] text-zinc-900">
+    <body class="font-sans antialiased bg-[#fbfbfd] text-zinc-900 overflow-x-hidden min-h-screen">
         @inertia
     </body>
 </html>

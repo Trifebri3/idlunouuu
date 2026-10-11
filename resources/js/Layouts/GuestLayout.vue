@@ -21,7 +21,10 @@ import { Link } from '@inertiajs/vue3';
         <div class="text-center space-y-2 mb-6 relative z-10">
             <Link href="/" class="inline-flex items-center gap-2.5 group">
                 <ApplicationLogo className="h-10 w-10 object-contain drop-shadow-xs group-hover:scale-105 transition-transform" variant="1" />
-                <span class="text-2xl font-black tracking-tight text-zinc-950">LUNOU</span>
+                <div class="flex flex-col text-left leading-none">
+                    <span class="text-2xl font-black tracking-tight text-zinc-950">me.myoin.id</span>
+                    <span class="text-[10px] font-semibold text-zinc-400 lowercase mt-0.5">part of lunou</span>
+                </div>
             </Link>
             <div class="space-y-0.5">
                 <p class="text-xs font-semibold text-zinc-600">Your world, your way.</p>
@@ -38,7 +41,7 @@ import { Link } from '@inertiajs/vue3';
 
         <!-- Footer Note -->
         <div class="mt-8 text-center text-xs text-zinc-400 relative z-10">
-            <span>&copy; {{ new Date().getFullYear() }} LUNOU · More Than a Link. A Little Piece of You.</span>
+            <span>&copy; {{ new Date().getFullYear() }} me.myoin.id · part of lunou.</span>
         </div>
     </div>
 </template>

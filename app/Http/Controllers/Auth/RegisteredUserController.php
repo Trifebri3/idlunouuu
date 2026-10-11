@@ -35,8 +35,23 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    if (User::where('email', $value)->exists()) {
+                        $fail('The email has already been taken.');
+                    }
+                },
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'terms' => ['required', 'accepted'],
+        ], [
+            'terms.accepted' => 'Anda wajib mencentang dan menyetujui Syarat dan Ketentuan layanan untuk mendaftar.',
+            'terms.required' => 'Anda wajib menyetujui Syarat dan Ketentuan layanan.',
         ]);
 
         $user = User::create([

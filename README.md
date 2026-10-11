@@ -1,64 +1,58 @@
-# LUNOU — Social Identity Platform & Custom NFC Keychains
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-> **Domain Resmi**: [id.lunou.tech](https://id.lunou.tech)  
-> **Tagline**: *More Than a Link. A Little Piece of You.*
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-LUNOU adalah platform identitas digital personal yang menghubungkan seluruh media sosial, portofolio, dan cerita Anda ke dalam satu profil yang elegan, serta terintegrasi langsung dengan produk fisik gantungan kunci custom berchip NFC pintar.
+## About Laravel
 
----
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-## 🌟 Fitur Utama
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-- **Profile-First Digital Space**: Kustomisasi profil lengkap dengan katalog ikon sosial media, biografi, tema warna, dan tautan publik responsif (`id.lunou.tech/{username}`).
-- **Gantungan Kunci Pintar NFC**: Produk fisik gantungan kunci custom berkarakter maskot LUNOU dengan chip RFID/NFC berkecepatan tinggi.
-- **Sistem Pemesanan & Pembayaran**:
-  - Pilihan karakter maskot (#1 - #10) atau upload gambar desain kustom.
-  - Pembayaran transfer rekening **blu by BCA Digital** (`007377724613` a/n **Tri febriansah**).
-  - Harga promo spesial **Rp 49.000 (Lifetime Access)** dari harga normal **Rp 100.000**.
-  - Konfirmasi otomatis via WhatsApp (`085862319524`) dan pelacakan status pesanan (*Tinggal Pantau*).
-- **Fitur Redeem Pesanan**: Memungkinkan pembeli dari luar web / WhatsApp untuk mengaktifkan dan menghubungkan gantungan kunci ke profil secara instan via Kode Order.
-- **Super Admin Console**:
-  - Manajemen akun pengguna & verifikasi pembayaran order pending.
-  - Pembuatan order offline / pemesanan luar web.
-  - Manajemen chip NFC hardware (unassigned & bound devices).
-- **Otentikasi & Keamanan**: Google OAuth (Socialite), Email/Password, CSRF protection, dan Audit Logging.
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
----
+## Learning Laravel
 
-## 🛠️ Tech Stack
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-- **Backend**: Laravel 13, PHP 8.4
-- **Frontend**: Vue 3 SPA, Inertia.js v2, Tailwind CSS
-- **Database**: MySQL
-- **Build Tool**: Vite
+In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
----
+You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
-## 🚀 Panduan Instalasi Lokal
+## Agentic Development
+
+Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
 
 ```bash
-# 1. Clone repositori
-git clone https://github.com/Trifebri3/idlunouuu.git
-cd idlunouuu
+composer require laravel/boost --dev
 
-# 2. Install dependensi PHP & Node.js
-composer install
-npm install
-
-# 3. Konfigurasi Environment (.env)
-cp .env.example .env
-php artisan key:generate
-
-# 4. Migrasi & Seeder Database
-php artisan migrate --seed
-
-# 5. Jalankan server lokal
-php artisan serve
-npm run dev
+php artisan boost:install
 ```
 
----
+Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
-## 📜 Lisensi & Hak Cipta
+## Contributing
 
-&copy; 2026 **LUNOU** (`id.lunou.tech`). All rights reserved.
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+
+## Code of Conduct
+
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+
+## License
+
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

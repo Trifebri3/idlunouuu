@@ -87,6 +87,97 @@ function saveProfile() {
     });
 }
 
+// Avatar Upload & Compression State
+const avatarFileInput = ref(null);
+const avatarUploading = ref(false);
+const avatarOptimizationInfo = ref(null);
+const avatarUploadError = ref('');
+const showCustomUrlInput = ref(false);
+const isAvatarDragging = ref(false);
+
+async function uploadAvatarFile(file) {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        avatarUploadError.value = 'Berkas harus berupa gambar (JPG, PNG, WebP, GIF).';
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        avatarUploadError.value = 'Ukuran berkas maksimal 10 MB.';
+        return;
+    }
+
+    avatarUploadError.value = '';
+    avatarUploading.value = true;
+    avatarOptimizationInfo.value = null;
+
+    const previousAvatar = profileForm.avatar;
+    profileForm.avatar = URL.createObjectURL(file);
+
+    try {
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        const response = await fetch('/studio/avatar', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            profileForm.avatar = data.avatar_url;
+            avatarOptimizationInfo.value = {
+                ratio: data.optimized?.compression_ratio || 0,
+                savedBytes: data.optimized?.saved_bytes || 0,
+                message: data.message,
+            };
+            setTimeout(() => {
+                avatarOptimizationInfo.value = null;
+            }, 6000);
+        } else {
+            profileForm.avatar = previousAvatar;
+            avatarUploadError.value = data.message || 'Gagal mengunggah foto profil.';
+        }
+    } catch {
+        profileForm.avatar = previousAvatar;
+        avatarUploadError.value = 'Terjadi kesalahan saat mengunggah foto. Silakan coba lagi.';
+    } finally {
+        avatarUploading.value = false;
+        if (avatarFileInput.value) {
+            avatarFileInput.value.value = '';
+        }
+    }
+}
+
+function onAvatarFileChange(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+        uploadAvatarFile(file);
+    }
+}
+
+function onAvatarDrop(e) {
+    isAvatarDragging.value = false;
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+        uploadAvatarFile(file);
+    }
+}
+
+function removeAvatar() {
+    profileForm.avatar = '';
+    avatarOptimizationInfo.value = null;
+    saveProfile();
+}
+
 // Select Theme
 function selectTheme(themeId) {
     profileForm.theme = themeId;
@@ -380,7 +471,7 @@ const currentThemeClass = computed(() => {
 
 <template>
     <div class="min-h-screen bg-[#fafbfc] text-zinc-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
-        <Head title="LUNOU Studio · Profile & Social Card Editor" />
+        <Head title="me.myoin.id · part of lunou · Studio" />
 
         <!-- Distinctive Background Brand Ornaments -->
         <img
@@ -390,13 +481,13 @@ const currentThemeClass = computed(() => {
         />
 
         <!-- Top Header Navigation (Nuansa Putih) -->
-        <header class="h-16 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <Link href="/" class="flex items-center gap-2.5 group">
-                    <ApplicationLogo className="w-8 h-8" variant="1" />
+        <header class="h-16 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <Link href="/" class="flex items-center gap-2 group">
+                    <ApplicationLogo className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0" variant="1" />
                     <div class="flex flex-col">
-                        <span class="font-extrabold tracking-tight text-zinc-950 text-base leading-none">LUNOU</span>
-                        <span class="text-[10px] font-bold text-blue-600 tracking-widest uppercase">Studio</span>
+                        <span class="font-extrabold tracking-tight text-zinc-950 text-base leading-none">me.myoin.id</span>
+                        <span class="text-[9px] font-bold text-blue-600 tracking-wider lowercase">part of lunou · Studio</span>
                     </div>
                 </Link>
 
@@ -409,20 +500,29 @@ const currentThemeClass = computed(() => {
                 </div>
             </div>
 
-            <!-- Header Right Actions -->
-            <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
+            <!-- Header Right Actions: Desktop Full Buttons -->
+            <div class="hidden md:flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <button
                     @click="copyPublicUrl"
-                    class="whitespace-nowrap px-3 py-1.5 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-300 text-xs font-semibold text-zinc-700 flex items-center gap-1.5 shadow-sm transition-all flex-shrink-0"
+                    class="whitespace-nowrap px-3 py-1.5 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-300 text-xs font-semibold text-zinc-700 flex items-center gap-1.5 shadow-xs transition-all flex-shrink-0"
                 >
                     <LunouIcon :name="copied ? 'check' : 'share'" className="w-3.5 h-3.5 text-blue-600" />
                     <span>{{ copied ? 'Tersalin' : 'Bagikan' }}</span>
                 </button>
 
+                <Link
+                    href="/studio/portfolio"
+                    class="whitespace-nowrap px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all flex-shrink-0"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <span>Web Portofolio</span>
+                    <span class="px-1.5 py-0.2 bg-white/20 text-[9px] rounded-md font-extrabold uppercase">Baru</span>
+                </Link>
+
                 <a
                     :href="publicUrl"
                     target="_blank"
-                    class="whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all flex-shrink-0"
+                    class="whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all flex-shrink-0"
                 >
                     <span>Buka Profil</span>
                     <LunouIcon name="eye" className="w-3.5 h-3.5 text-zinc-300" />
@@ -446,29 +546,62 @@ const currentThemeClass = computed(() => {
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </Link>
             </div>
+
+            <!-- Header Right Actions: Mobile Compact (Sleek & Seamless, No Overflow!) -->
+            <div class="flex md:hidden items-center gap-1.5 flex-shrink-0">
+                <button
+                    @click="copyPublicUrl"
+                    class="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 flex items-center justify-center transition-all shadow-2xs"
+                    title="Bagikan Tautan Profil"
+                >
+                    <LunouIcon :name="copied ? 'check' : 'share'" className="w-4 h-4 text-blue-600" />
+                </button>
+
+                <a
+                    :href="publicUrl"
+                    target="_blank"
+                    class="px-3 py-2 rounded-xl bg-zinc-950 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-xs transition-all"
+                >
+                    <span>Lihat</span>
+                    <LunouIcon name="eye" className="w-3.5 h-3.5 text-zinc-300" />
+                </a>
+
+                <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    class="w-9 h-9 rounded-xl text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 flex items-center justify-center transition-colors"
+                    title="Keluar"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </Link>
+            </div>
         </header>
 
-        <!-- Mobile Switcher (Editor vs Live Preview) -->
-        <div class="lg:hidden flex border-b border-zinc-200 bg-white text-xs font-medium sticky top-16 z-30">
-            <button
-                @click="mobileView = 'editor'"
-                class="flex-1 py-3 text-center transition-colors"
-                :class="mobileView === 'editor' ? 'text-blue-600 border-b-2 border-blue-600 font-bold bg-blue-50/40' : 'text-zinc-500'"
-            >
-                Studio Editor
-            </button>
-            <button
-                @click="mobileView = 'preview'"
-                class="flex-1 py-3 text-center transition-colors flex items-center justify-center gap-1.5"
-                :class="mobileView === 'preview' ? 'text-blue-600 border-b-2 border-blue-600 font-bold bg-blue-50/40' : 'text-zinc-500'"
-            >
-                <LunouIcon name="eye" className="w-3.5 h-3.5" />
-                Live Preview
-            </button>
+        <!-- Mobile Switcher: Modern iOS-Style Segmented Pill (Editor vs Lihat Tampilan) -->
+        <div class="lg:hidden px-4 pt-3 pb-2 sticky top-16 z-30 bg-[#fafbfc]/90 backdrop-blur-md">
+            <div class="bg-zinc-200/70 p-1 rounded-2xl flex items-center text-xs font-semibold shadow-inner max-w-sm mx-auto">
+                <button
+                    @click="mobileView = 'editor'"
+                    class="flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[42px]"
+                    :class="mobileView === 'editor' ? 'bg-white text-zinc-950 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <span>Editor Profil</span>
+                </button>
+                <button
+                    @click="mobileView = 'preview'"
+                    class="flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[42px]"
+                    :class="mobileView === 'preview' ? 'bg-white text-zinc-950 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'"
+                >
+                    <LunouIcon name="eye" className="w-4 h-4 text-blue-600" />
+                    <span>Lihat Tampilan</span>
+                </button>
+            </div>
         </div>
 
         <!-- Main Studio Body -->
-        <div class="flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-8 p-4 lg:p-8">
+        <div class="flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-8 p-3 sm:p-6 lg:p-8 pb-32 lg:pb-8">
 
             <!-- LEFT COLUMN: Editor Studio Panel (7 cols on Desktop) -->
             <div
@@ -476,46 +609,46 @@ const currentThemeClass = computed(() => {
                 :class="{ 'hidden lg:flex': mobileView === 'preview' }"
             >
                 <!-- Welcoming Space Onboarding Card: Ruang LUNOU-ku (Section 4) -->
-                <div v-if="showOnboardingWelcome" class="bg-gradient-to-br from-white via-blue-50/20 to-zinc-50 border border-blue-100/80 rounded-3xl p-6 md:p-7 shadow-xs relative overflow-hidden">
+                <div v-if="showOnboardingWelcome" class="bg-gradient-to-br from-white via-blue-50/20 to-zinc-50 border border-blue-100/80 rounded-3xl p-5 sm:p-7 shadow-xs relative overflow-hidden">
                     <img
                         src="/icon/1.png"
                         alt=""
                         class="absolute -right-6 -bottom-6 w-36 h-36 opacity-10 pointer-events-none select-none"
                     />
 
-                    <div class="relative z-10 space-y-4">
-                        <div class="flex items-start justify-between gap-4">
+                    <div class="relative z-10 space-y-3 sm:space-y-4">
+                        <div class="flex items-start justify-between gap-3 sm:gap-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center shadow-sm flex-shrink-0">
                                     <ApplicationLogo className="w-6 h-6 object-contain" variant="1" />
                                 </div>
                                 <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200/60">
-                                            Ruang LUNOU-ku
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
+                                            me.myoin.id · part of lunou
                                         </span>
-                                        <span class="text-xs text-zinc-400 font-medium">Semua tentangmu, dalam satu tempat.</span>
+                                        <span class="text-[11px] text-zinc-400 font-medium hidden sm:inline">Satu tempat untuk memperkenalkan dirimu.</span>
                                     </div>
-                                    <h2 class="text-lg md:text-xl font-black text-zinc-950 tracking-tight mt-1">
-                                        Ceritakan tentang dirimu.
+                                    <h2 class="text-base sm:text-lg md:text-xl font-black text-zinc-950 tracking-tight mt-1">
+                                        Selamat datang kembali.
                                     </h2>
-                                    <p class="text-xs text-zinc-600 mt-1 max-w-xl leading-relaxed">
-                                        Tambahkan foto, tulis bio, dan pilih hal-hal yang ingin kamu bagikan. Tidak perlu mengisi semuanya sekaligus—mulai dari apa yang kamu punya.
+                                    <p class="text-xs text-zinc-600 mt-0.5 max-w-xl leading-relaxed">
+                                        Profilmu siap dikembangkan kapan saja. Mulai dari nama, foto, atau tautan yang kamu punya.
                                     </p>
                                 </div>
                             </div>
 
                             <button
                                 @click="showOnboardingWelcome = false"
-                                class="text-zinc-400 hover:text-zinc-700 text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-white/80 transition-colors flex-shrink-0"
+                                class="text-zinc-400 hover:text-zinc-700 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-white/80 transition-colors flex-shrink-0"
                                 title="Tutup sapaan ini"
                             >
-                                Sembunyikan &times;
+                                &times;
                             </button>
                         </div>
 
-                        <!-- Quick Jump Starting Cards: Mulai dari yang kamu punya -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+                        <!-- Quick Jump Starting Cards: Desktop & Tablet Grid -->
+                        <div class="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                             <button
                                 @click="activeTab = 'profile'"
                                 class="p-3.5 rounded-2xl bg-white border border-zinc-200/80 hover:border-blue-500 hover:shadow-xs transition-all text-left group"
@@ -565,17 +698,23 @@ const currentThemeClass = computed(() => {
                             </button>
                         </div>
 
-                        <div class="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
-                            <span class="italic">“Silakan mulai dari mana saja. Belum siap membagikannya? Kamu bisa kembali nanti.”</span>
-                            <button @click="activeTab = 'profile'" class="text-blue-600 font-bold hover:underline">
-                                Lengkapi Profilku &rarr;
+                        <!-- Mobile Compact Status Pill (Ringkas & Bersih di HP) -->
+                        <div class="sm:hidden flex items-center justify-between p-3 rounded-2xl bg-white border border-zinc-200/80 shadow-2xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full" :class="profileForm.avatar && profileForm.bio ? 'bg-emerald-500' : 'bg-amber-400'"></span>
+                                <span class="text-xs font-bold text-zinc-900">
+                                    {{ profileForm.avatar && profileForm.bio ? 'Profil Siap Dibagikan' : 'Yuk, Lengkapi Foto & Bio' }}
+                                </span>
+                            </div>
+                            <button @click="activeTab = 'profile'" class="text-[11px] text-blue-600 font-bold hover:underline">
+                                Kelola &rarr;
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Studio Navigation Tabs (Nuansa Putih) -->
-                <div class="flex items-center gap-1 p-1 bg-white border border-zinc-200/90 rounded-2xl overflow-x-auto text-xs font-semibold shadow-sm">
+                <!-- Studio Navigation Tabs (HANYA MUNCUL DI DESKTOP - di HP menggunakan Bottom Nav Bar yang rapi) -->
+                <div class="hidden lg:flex items-center gap-1 p-1 bg-white border border-zinc-200/90 rounded-2xl overflow-x-auto text-xs font-semibold shadow-sm">
                     <button
                         @click="activeTab = 'profile'"
                         class="px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap"
@@ -615,20 +754,28 @@ const currentThemeClass = computed(() => {
                     >
                         <span>Interaksi Profil</span>
                     </button>
+                    <Link
+                        href="/studio/portfolio"
+                        class="px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 text-blue-700 hover:from-blue-100 hover:to-indigo-100"
+                    >
+                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span>Web Portofolio</span>
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-600 text-white">Baru</span>
+                    </Link>
                 </div>
 
                 <!-- TAB 1: Profil & Bio (Clean White) -->
-                <div v-if="activeTab === 'profile'" class="bg-white border border-zinc-200/90 rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
-                    <div class="flex items-start justify-between border-b border-zinc-100 pb-5">
-                        <div class="flex items-center gap-3">
-                            <ApplicationLogo className="w-8 h-8" variant="1" />
+                <div v-if="activeTab === 'profile'" class="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 shadow-sm">
+                    <div class="flex items-start justify-between border-b border-zinc-100 pb-4 sm:pb-5">
+                        <div class="flex items-center gap-2.5 sm:gap-3">
+                            <ApplicationLogo className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0" variant="1" />
                             <div>
-                                <h2 class="text-lg font-bold text-zinc-900 tracking-tight">Identitas Profil</h2>
-                                <p class="text-xs text-zinc-500 mt-0.5">Informasi utama saat pengunjung membuka profil atau men-tap kartu NFC.</p>
+                                <h2 class="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">Identitas Profil</h2>
+                                <p class="text-[11px] sm:text-xs text-zinc-500 mt-0.5">Informasi utama saat membuka profil atau tap NFC.</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-semibold text-zinc-700">Publikasi Profil:</label>
+                        <div class="flex items-center gap-1.5 sm:gap-2">
+                            <label class="text-[11px] sm:text-xs font-semibold text-zinc-700">Publikasi:</label>
                             <input
                                 type="checkbox"
                                 v-model="profileForm.is_published"
@@ -638,24 +785,24 @@ const currentThemeClass = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Username Config -->
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold text-zinc-700 uppercase tracking-wider">Username LUNOU</label>
-                        <div class="flex items-center gap-2">
-                            <div class="relative flex-1">
-                                <span class="absolute left-3.5 top-2.5 text-zinc-400 text-sm font-mono">lunou.id/</span>
+                    <!-- Username Config (Responsive Flex Group) -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-zinc-700 uppercase tracking-wider">Username me.myoin.id</label>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <div class="relative flex-1 flex items-center bg-zinc-50 border border-zinc-200 focus-within:bg-white focus-within:border-zinc-950 rounded-xl overflow-hidden transition-all">
+                                <span class="pl-3.5 pr-1 text-zinc-400 text-xs sm:text-sm font-mono select-none flex-shrink-0">me.myoin.id/</span>
                                 <input
                                     type="text"
                                     v-model="usernameForm.username"
                                     @input="onUsernameInput"
-                                    class="w-full bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 rounded-xl pl-24 pr-4 py-2.5 text-sm font-mono text-zinc-900 focus:outline-none transition-all"
-                                    placeholder="username-anda"
+                                    class="w-full bg-transparent border-0 focus:ring-0 py-2.5 sm:py-3 pr-3 text-xs sm:text-sm font-mono text-zinc-900 focus:outline-none"
+                                    placeholder="username-kamu"
                                 />
                             </div>
                             <button
                                 @click="saveUsername"
                                 :disabled="usernameForm.processing || usernameCheckStatus.available === false"
-                                class="px-5 py-2.5 bg-zinc-900 hover:bg-black text-white font-bold text-xs rounded-xl disabled:opacity-50 transition-all whitespace-nowrap shadow-sm"
+                                class="w-full sm:w-auto px-5 py-2.5 sm:py-3 bg-zinc-950 hover:bg-black text-white font-bold text-xs rounded-xl disabled:opacity-50 transition-all whitespace-nowrap shadow-sm min-h-[42px] flex items-center justify-center"
                             >
                                 Simpan
                             </button>
@@ -669,27 +816,126 @@ const currentThemeClass = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Display Name & Avatar -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
-                            <label class="block text-xs font-bold text-zinc-700 uppercase tracking-wider">Nama Tampilan</label>
-                            <input
-                                type="text"
-                                v-model="profileForm.display_name"
-                                @change="saveProfile"
-                                class="w-full bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 rounded-xl px-4 py-2.5 text-sm text-zinc-900 focus:outline-none transition-all"
-                                placeholder="Contoh: Tri Wicaksono"
-                            />
+                    <!-- Display Name -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-zinc-700 uppercase tracking-wider">Nama Tampilan</label>
+                        <input
+                            type="text"
+                            v-model="profileForm.display_name"
+                            @change="saveProfile"
+                            class="w-full bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 rounded-xl px-4 py-2.5 text-sm text-zinc-900 focus:outline-none transition-all"
+                            placeholder="Contoh: Tri Febriansah"
+                        />
+                    </div>
+
+                    <!-- Foto Profil (Avatar Uploader dengan Kompresi Otomatis Backend) -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-zinc-700 uppercase tracking-wider">Foto Profil</label>
+                            <button
+                                type="button"
+                                @click="showCustomUrlInput = !showCustomUrlInput"
+                                class="text-[11px] text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                            >
+                                {{ showCustomUrlInput ? 'Sembunyikan URL Manual' : 'Gunakan URL Gambar Manual' }}
+                            </button>
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="block text-xs font-bold text-zinc-700 uppercase tracking-wider">Foto Profil (URL Gambar)</label>
-                            <input
-                                type="text"
-                                v-model="profileForm.avatar"
-                                @change="saveProfile"
-                                class="w-full bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 rounded-xl px-4 py-2.5 text-sm text-zinc-900 focus:outline-none transition-all"
-                                placeholder="https://..."
-                            />
+
+                        <div
+                            @dragover.prevent="isAvatarDragging = true"
+                            @dragleave.prevent="isAvatarDragging = false"
+                            @drop.prevent="onAvatarDrop"
+                            class="p-4 sm:p-5 rounded-2xl border-2 border-dashed transition-all bg-zinc-50/70"
+                            :class="isAvatarDragging ? 'border-blue-500 bg-blue-50/50 scale-[1.01]' : 'border-zinc-200 hover:border-zinc-300'"
+                        >
+                            <div class="flex flex-col sm:flex-row items-center gap-4">
+                                <!-- Avatar Preview Circle -->
+                                <div class="relative group flex-shrink-0">
+                                    <img
+                                        :src="profileForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80'"
+                                        alt="Foto Profil"
+                                        class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md ring-2 ring-zinc-200/80 bg-zinc-100"
+                                    />
+                                    <div
+                                        v-if="avatarUploading"
+                                        class="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center text-white backdrop-blur-xs"
+                                    >
+                                        <svg class="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Action Controls & Info -->
+                                <div class="flex-1 text-center sm:text-left space-y-2">
+                                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                                        <input
+                                            ref="avatarFileInput"
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                                            class="hidden"
+                                            @change="onAvatarFileChange"
+                                        />
+                                        <button
+                                            type="button"
+                                            @click="avatarFileInput?.click()"
+                                            :disabled="avatarUploading"
+                                            class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all disabled:opacity-50"
+                                        >
+                                            <LunouIcon name="camera" className="w-4 h-4" />
+                                            <span>{{ avatarUploading ? 'Mengompres & Mengunggah...' : 'Pilih Foto dari Galeri' }}</span>
+                                        </button>
+                                        <button
+                                            v-if="profileForm.avatar"
+                                            type="button"
+                                            @click="removeAvatar"
+                                            class="px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-rose-50 hover:border-rose-300 text-zinc-600 hover:text-rose-600 text-xs font-semibold transition-all"
+                                        >
+                                            Hapus Foto
+                                        </button>
+                                    </div>
+
+                                    <p class="text-[11px] text-zinc-500 leading-relaxed">
+                                        Pilih atau seret berkas foto ke sini. Semua gambar otomatis dikompresi & dikonversi ke WebP di backend untuk loading instan (Maks. 10MB).
+                                    </p>
+
+                                    <!-- Feedback Badge -->
+                                    <div
+                                        v-if="avatarOptimizationInfo"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold animate-pulse"
+                                    >
+                                        <LunouIcon name="check" className="w-3.5 h-3.5 text-emerald-600" />
+                                        <span>{{ avatarOptimizationInfo.message }}</span>
+                                    </div>
+
+                                    <!-- Error Alert -->
+                                    <div v-if="avatarUploadError" class="text-xs text-rose-600 font-medium">
+                                        {{ avatarUploadError }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Optional Manual URL input -->
+                            <div v-if="showCustomUrlInput" class="mt-3 pt-3 border-t border-zinc-200/80 space-y-1">
+                                <label class="block text-[11px] font-bold text-zinc-600 uppercase">Tautan / URL Gambar Manual</label>
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        v-model="profileForm.avatar"
+                                        @change="saveProfile"
+                                        class="flex-1 bg-white border border-zinc-200 focus:border-zinc-900 rounded-xl px-3.5 py-2 text-xs text-zinc-900 focus:outline-none"
+                                        placeholder="https://... atau /icon/1.png"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="saveProfile"
+                                        class="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-xs font-bold text-zinc-800"
+                                    >
+                                        Terapkan
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -721,9 +967,9 @@ const currentThemeClass = computed(() => {
                 </div>
 
                 <!-- TAB 2: Komponen Sosial & Media (Clean White) -->
-                <div v-else-if="activeTab === 'components'" class="space-y-6">
+                <div v-else-if="activeTab === 'components'" class="space-y-5 sm:space-y-6">
                     <!-- Quick Add Toolbar & Searchable Platform Catalog (Section 5) -->
-                    <div class="bg-white border border-zinc-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div class="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
                                 <h3 class="text-sm font-bold text-zinc-900 tracking-tight">Katalog Media Sosial & Tautan</h3>
@@ -731,7 +977,7 @@ const currentThemeClass = computed(() => {
                             </div>
                             <button
                                 @click="openAddModal()"
-                                class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all w-fit"
+                                class="px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all w-full sm:w-fit min-h-[42px]"
                             >
                                 <LunouIcon name="plus" className="w-3.5 h-3.5" />
                                 <span>Tautan Kustom Lainnya</span>
@@ -743,8 +989,8 @@ const currentThemeClass = computed(() => {
                             <input
                                 type="text"
                                 v-model="socialSearchQuery"
-                                class="w-full bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 rounded-xl pl-9 pr-4 py-2.5 text-xs text-zinc-900 focus:outline-none transition-all placeholder:text-zinc-400"
-                                placeholder="Cari logo platform (misal: LinkedIn, Spotify, Threads, GitHub, Behance...)"
+                                class="w-full bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 rounded-xl pl-9 pr-4 py-2.5 text-xs text-zinc-900 focus:outline-none transition-all placeholder:text-zinc-400 min-h-[42px]"
+                                placeholder="Cari logo platform (misal: LinkedIn, Spotify, Threads, GitHub...)"
                             />
                             <LunouIcon name="search" className="w-4 h-4 text-zinc-400 absolute left-3 top-3 pointer-events-none" />
                         </div>
@@ -755,7 +1001,7 @@ const currentThemeClass = computed(() => {
                                 v-for="platform in filteredSocialPlatforms"
                                 :key="platform.id"
                                 @click="openAddModal(platform)"
-                                class="flex flex-col items-center justify-center p-3 rounded-2xl bg-zinc-50 hover:bg-zinc-100/90 border border-zinc-200/80 hover:border-zinc-400 transition-all group text-center"
+                                class="flex flex-col items-center justify-center p-3 rounded-2xl bg-zinc-50 hover:bg-zinc-100/90 border border-zinc-200/80 hover:border-zinc-400 transition-all group text-center min-h-[72px]"
                             >
                                 <div class="w-8 h-8 rounded-xl bg-white border border-zinc-200 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
                                     <LunouIcon :name="platform.icon" className="w-4 h-4 text-zinc-800 group-hover:text-blue-600 transition-colors" />
@@ -766,18 +1012,18 @@ const currentThemeClass = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Active Components List -->
-                    <div class="bg-white border border-zinc-200/90 rounded-2xl p-6 shadow-sm space-y-4">
-                        <div class="flex items-center justify-between border-b border-zinc-100 pb-4">
-                            <h3 class="text-sm font-bold text-zinc-900">Komponen Aktif ({{ profile.components?.length || 0 }})</h3>
-                            <span class="text-xs text-zinc-400">Gunakan panah untuk mengatur susunan urutan</span>
+                    <!-- Active Components List (UCD Bab 4.3: Bahasa Manusia Tautan Profil) -->
+                    <div class="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                            <h3 class="text-sm font-bold text-zinc-900">Tautan & Konten Aktif ({{ profile.components?.length || 0 }})</h3>
+                            <span class="text-[11px] text-zinc-400">Atur urutan dengan panah</span>
                         </div>
 
-                        <div v-if="!profile.components || profile.components.length === 0" class="py-12 text-center text-zinc-400 space-y-3">
+                        <div v-if="!profile.components || profile.components.length === 0" class="py-10 text-center text-zinc-400 space-y-3">
                             <ApplicationLogo className="w-12 h-12 mx-auto opacity-30" variant="2" />
-                            <p class="text-sm">Belum ada komponen di profil Anda.</p>
-                            <button @click="openAddModal()" class="text-xs text-blue-600 hover:underline font-semibold">
-                                + Tambahkan komponen pertama Anda sekarang
+                            <p class="text-sm text-zinc-600">Profilmu masih kosong. Mulai dengan menambahkan nama, tautan media sosial, atau karyamu.</p>
+                            <button @click="openAddModal()" class="px-5 py-3 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-black transition-all shadow-2xs min-h-[44px]">
+                                + Tambahkan Tautan Pertamamu
                             </button>
                         </div>
 
@@ -785,64 +1031,64 @@ const currentThemeClass = computed(() => {
                             <div
                                 v-for="(comp, index) in profile.components"
                                 :key="comp.id"
-                                class="flex items-center justify-between p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/90 hover:border-zinc-300 transition-all"
+                                class="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/90 hover:border-zinc-300 transition-all gap-2"
                                 :class="{ 'opacity-50': !comp.is_visible }"
                             >
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-9 h-9 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-800 flex-shrink-0 shadow-xs">
+                                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-800 flex-shrink-0 shadow-xs">
                                         <LunouIcon :name="comp.settings?.icon || 'globe'" className="w-4 h-4 text-blue-600" />
                                     </div>
                                     <div class="min-w-0">
-                                        <h4 class="text-sm font-semibold text-zinc-900 truncate">{{ comp.title }}</h4>
-                                        <p class="text-xs text-zinc-500 truncate font-mono">{{ comp.url || comp.content || comp.type }}</p>
+                                        <h4 class="text-xs sm:text-sm font-semibold text-zinc-900 truncate">{{ comp.title }}</h4>
+                                        <p class="text-[10px] sm:text-xs text-zinc-500 truncate font-mono">{{ comp.url || comp.content || comp.type }}</p>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                <div class="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                                     <!-- Move Order -->
                                     <button
                                         @click="moveComponent(index, -1)"
                                         :disabled="index === 0"
-                                        class="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 disabled:opacity-20"
+                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 disabled:opacity-20 min-h-[36px] min-w-[36px] flex items-center justify-center"
                                         title="Pindah ke Atas"
                                     >
-                                        <LunouIcon name="chevron-up" className="w-4 h-4" />
+                                        <LunouIcon name="chevron-up" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </button>
                                     <button
                                         @click="moveComponent(index, 1)"
                                         :disabled="index === profile.components.length - 1"
-                                        class="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 disabled:opacity-20"
+                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 disabled:opacity-20 min-h-[36px] min-w-[36px] flex items-center justify-center"
                                         title="Pindah ke Bawah"
                                     >
-                                        <LunouIcon name="chevron-down" className="w-4 h-4" />
+                                        <LunouIcon name="chevron-down" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </button>
 
                                     <!-- Visibility Toggle -->
                                     <button
                                         @click="toggleVisibility(comp)"
-                                        class="p-1.5 rounded-lg hover:bg-zinc-200/70"
+                                        class="p-1.5 sm:p-2 rounded-lg hover:bg-zinc-200/70 min-h-[36px] min-w-[36px] flex items-center justify-center"
                                         :class="comp.is_visible ? 'text-emerald-600' : 'text-zinc-300'"
                                         title="Tampilkan / Sembunyikan"
                                     >
-                                        <LunouIcon name="eye" className="w-4 h-4" />
+                                        <LunouIcon name="eye" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </button>
 
                                     <!-- Edit -->
                                     <button
                                         @click="openEditModal(comp)"
-                                        class="p-1.5 rounded-lg text-zinc-500 hover:text-blue-600 hover:bg-zinc-200/70"
-                                        title="Edit Komponen"
+                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-blue-600 hover:bg-zinc-200/70 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                        title="Ubah Tautan"
                                     >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     </button>
 
                                     <!-- Delete -->
                                     <button
                                         @click="deleteComponent(comp)"
-                                        class="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-zinc-200/70"
-                                        title="Hapus Komponen"
+                                        class="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-zinc-200/70 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                        title="Hapus Tautan"
                                     >
-                                        <LunouIcon name="trash" className="w-4 h-4" />
+                                        <LunouIcon name="trash" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </button>
                                 </div>
                             </div>
@@ -851,38 +1097,38 @@ const currentThemeClass = computed(() => {
                 </div>
 
                 <!-- TAB 3: Tema & Tampilan -->
-                <div v-else-if="activeTab === 'themes'" class="bg-white border border-zinc-200/90 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+                <div v-else-if="activeTab === 'themes'" class="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm space-y-5 sm:space-y-6">
                     <div>
-                        <h2 class="text-lg font-bold text-zinc-900 tracking-tight">Katalog Tema Profil</h2>
-                        <p class="text-xs text-zinc-500 mt-0.5">Pilih gaya visual untuk profil Anda. Tampilan di samping akan langsung terbarui secara instan.</p>
+                        <h2 class="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">Katalog Tema Profil</h2>
+                        <p class="text-xs text-zinc-500 mt-0.5">Pilih gaya visual untuk profilmu. Tampilan langsung terbarui otomatis.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div
                             v-for="th in themes"
                             :key="th.id"
                             @click="selectTheme(th.id)"
-                            class="p-4 rounded-2xl border cursor-pointer transition-all relative overflow-hidden group"
+                            class="p-3.5 sm:p-4 rounded-2xl border cursor-pointer transition-all relative overflow-hidden group"
                             :class="profileForm.theme === th.id ? 'border-zinc-950 bg-zinc-50 ring-1 ring-zinc-950' : 'border-zinc-200 bg-white hover:border-zinc-300'"
                         >
-                            <div class="h-20 rounded-xl mb-3 flex items-center justify-center p-3 relative overflow-hidden border border-zinc-200/60 shadow-xs" :style="{ backgroundColor: th.previewColor }">
+                            <div class="h-16 sm:h-20 rounded-xl mb-3 flex items-center justify-center p-3 relative overflow-hidden border border-zinc-200/60 shadow-xs" :style="{ backgroundColor: th.previewColor }">
                                 <div class="w-full flex items-center justify-between">
-                                    <div class="w-8 h-8 rounded-full bg-zinc-400/20"></div>
-                                    <div class="h-3 w-20 rounded-full bg-zinc-400/30"></div>
+                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-400/20"></div>
+                                    <div class="h-2.5 sm:h-3 w-16 sm:w-20 rounded-full bg-zinc-400/30"></div>
                                 </div>
-                                <div v-if="profileForm.theme === th.id" class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-zinc-950 text-white text-[10px] font-black uppercase tracking-wider">
+                                <div v-if="profileForm.theme === th.id" class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-zinc-950 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
                                     Aktif
                                 </div>
                             </div>
 
                             <h3 class="font-bold text-sm text-zinc-900 group-hover:text-blue-600 transition-colors">{{ th.name }}</h3>
-                            <p class="text-xs text-zinc-500 mt-1">{{ th.description }}</p>
+                            <p class="text-[11px] sm:text-xs text-zinc-500 mt-1">{{ th.description }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- TAB 4: Gantungan Kunci Custom LUNOU (NFC Charm) -->
-                <div v-else-if="activeTab === 'nfc'" class="bg-white border border-zinc-200/90 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+                <div v-else-if="activeTab === 'nfc'" class="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm space-y-5 sm:space-y-6">
                     <div class="border-b border-zinc-100 pb-5">
                         <div class="flex items-center gap-2">
                             <span class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold tracking-widest uppercase">
@@ -1068,14 +1314,18 @@ const currentThemeClass = computed(() => {
                                 </div>
 
                                 <div v-else-if="order.status === 'processing'" class="bg-blue-50/60 rounded-xl p-3 border border-blue-200/70 flex items-center gap-2.5 text-xs text-blue-900">
-                                    <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[9px] flex-shrink-0">✓</div>
+                                    <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                        <LunouIcon name="check" className="w-3 h-3 text-white" />
+                                    </div>
                                     <span class="text-[11px] leading-relaxed">
                                         Pembayaran telah diverifikasi! Admin sedang menyiapkan fisik gantungan kunci dan memprogram chip NFC untuk profilmu. Tinggal pantau hingga selesai.
                                     </span>
                                 </div>
 
                                 <div v-else class="bg-emerald-50/60 rounded-xl p-3 border border-emerald-200/70 flex items-center gap-2.5 text-xs text-emerald-900">
-                                    <div class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[9px] flex-shrink-0">✓</div>
+                                    <div class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                        <LunouIcon name="check" className="w-3 h-3 text-white" />
+                                    </div>
                                     <span class="text-[11px] leading-relaxed">
                                         Gantungan kunci telah selesai dibuat dan aktif terhubung ke profilmu.
                                     </span>
@@ -1224,7 +1474,7 @@ const currentThemeClass = computed(() => {
                             <span class="text-[11px] text-zinc-400">Tayangan halaman publik</span>
                         </div>
                         <div class="p-5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-1">
-                            <span class="text-xs text-zinc-500 font-semibold">Total Klik Komponen</span>
+                            <span class="text-xs text-zinc-500 font-semibold">Total Klik Tautan</span>
                             <div class="text-3xl font-extrabold text-blue-600 tracking-tight">{{ stats.clicks || 0 }}</div>
                             <span class="text-[11px] text-zinc-400">Interaksi tautan media sosial</span>
                         </div>
@@ -1232,13 +1482,81 @@ const currentThemeClass = computed(() => {
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: Interactive Smartphone Live Preview (5 cols on Desktop) -->
+            <!-- RIGHT COLUMN: Interactive Live Preview (5 cols on Desktop) -->
             <div
-                class="lg:col-span-5 flex flex-col items-center justify-start sticky top-24"
+                class="lg:col-span-5 flex flex-col items-center justify-start sticky top-24 w-full"
                 :class="{ 'hidden lg:flex': mobileView === 'editor' }"
             >
-                <!-- Phone Frame Container in Clean White / Light Titanium Style -->
-                <div class="w-full max-w-[340px] rounded-[44px] p-3 bg-white border-4 border-zinc-200 shadow-xl relative">
+                <!-- MOBILE NATIVE EDGE-TO-EDGE PREVIEW (Tanpa Frame Ponsel Palsu di HP Asli!) -->
+                <div
+                    class="lg:hidden w-full max-w-md mx-auto rounded-3xl p-6 pt-10 shadow-sm flex flex-col items-center text-center transition-all duration-300 min-h-[75vh] border border-zinc-200/80 relative overflow-hidden"
+                    :class="currentThemeClass.bg"
+                >
+                    <!-- Brand Watermark -->
+                    <ApplicationLogo className="absolute top-4 right-4 w-6 h-6 opacity-30 pointer-events-none" variant="1" />
+
+                    <!-- Avatar -->
+                    <div class="relative group mb-3">
+                        <img
+                            :src="profileForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80'"
+                            alt="Avatar"
+                            class="w-24 h-24 rounded-full object-cover border-4 border-white/80 shadow-md bg-zinc-100"
+                        />
+                        <div v-if="profileForm.is_published" class="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white"></div>
+                    </div>
+
+                    <!-- Name & Username -->
+                    <h3 class="font-extrabold text-xl tracking-tight leading-snug">{{ profileForm.display_name || 'Nama Kamu' }}</h3>
+                    <p class="text-xs opacity-70 font-mono mt-0.5">@{{ usernameForm.username || profile.username }}</p>
+
+                    <!-- Bio -->
+                    <p class="text-xs mt-3 opacity-80 leading-relaxed px-3 max-w-sm">
+                        {{ profileForm.bio || 'Tulis bio singkat di editor untuk memperkenalkan dirimu.' }}
+                    </p>
+
+                    <!-- Components Stack Preview -->
+                    <div class="w-full mt-6 space-y-3 pb-8">
+                        <template v-for="comp in profile.components" :key="comp.id">
+                            <div
+                                v-if="comp.is_visible"
+                                class="w-full py-3.5 px-4 rounded-2xl transition-all flex items-center justify-between text-left text-xs font-semibold shadow-2xs"
+                                :class="comp.type === 'featured_link' ? currentThemeClass.accent : currentThemeClass.card"
+                            >
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <LunouIcon :name="comp.settings?.icon || 'globe'" className="w-4 h-4 flex-shrink-0" />
+                                    <span class="truncate text-sm">{{ comp.title }}</span>
+                                </div>
+                                <svg class="w-4 h-4 opacity-40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                        </template>
+
+                        <div v-if="!profile.components || profile.components.length === 0" class="py-10 text-center text-xs opacity-50">
+                            Tautan akan muncul di sini secara langsung.
+                        </div>
+                    </div>
+
+                    <!-- Mobile Bottom Bar Return Controls -->
+                    <div class="mt-auto pt-4 pb-4 flex items-center gap-2.5">
+                        <button
+                            @click="mobileView = 'editor'"
+                            class="px-4 py-2.5 rounded-xl bg-white/95 border border-zinc-200 text-zinc-900 text-xs font-bold shadow-xs flex items-center gap-1.5"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <span>Kembali ke Editor</span>
+                        </button>
+                        <a
+                            :href="publicUrl"
+                            target="_blank"
+                            class="px-4 py-2.5 rounded-xl bg-zinc-950 text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+                        >
+                            <span>Buka URL Publik</span>
+                            <LunouIcon name="eye" className="w-3.5 h-3.5 text-zinc-300" />
+                        </a>
+                    </div>
+                </div>
+
+                <!-- DESKTOP PHONE FRAME CONTAINER (Hanya Tampil di Layar Desktop) -->
+                <div class="hidden lg:block w-full max-w-[340px] rounded-[44px] p-3 bg-white border-4 border-zinc-200 shadow-xl relative">
                     <!-- Speaker & Dynamic Notch -->
                     <div class="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-4 bg-zinc-900 rounded-full z-20 flex items-center justify-center">
                         <div class="w-2.5 h-2.5 rounded-full bg-zinc-800"></div>
@@ -1263,12 +1581,12 @@ const currentThemeClass = computed(() => {
                         </div>
 
                         <!-- Name & Username -->
-                        <h3 class="font-bold text-base tracking-tight leading-snug">{{ profileForm.display_name || 'Nama Anda' }}</h3>
+                        <h3 class="font-bold text-base tracking-tight leading-snug">{{ profileForm.display_name || 'Nama Kamu' }}</h3>
                         <p class="text-xs opacity-70 font-mono mt-0.5">@{{ usernameForm.username || profile.username }}</p>
 
                         <!-- Bio -->
                         <p class="text-xs mt-2.5 opacity-80 leading-relaxed px-2 line-clamp-3">
-                            {{ profileForm.bio || 'Tulis bio singkat di editor untuk memperkenalkan diri Anda.' }}
+                            {{ profileForm.bio || 'Tulis bio singkat di editor untuk memperkenalkan dirimu.' }}
                         </p>
 
                         <!-- Components Stack Preview -->
@@ -1288,7 +1606,7 @@ const currentThemeClass = computed(() => {
                             </template>
 
                             <div v-if="!profile.components || profile.components.length === 0" class="py-8 text-center text-xs opacity-40">
-                                Komponen akan muncul di sini secara real-time.
+                                Tautan akan muncul di sini secara langsung.
                             </div>
                         </div>
 
@@ -1300,7 +1618,7 @@ const currentThemeClass = computed(() => {
                     </div>
                 </div>
 
-                <div class="mt-4 flex items-center gap-2 text-xs text-zinc-500">
+                <div class="hidden lg:flex mt-4 items-center gap-2 text-xs text-zinc-500">
                     <span>Live Responsive Preview</span>
                     <span>·</span>
                     <a :href="publicUrl" target="_blank" class="text-blue-600 hover:underline font-semibold">Buka Tab Penuh &rarr;</a>
@@ -1315,17 +1633,17 @@ const currentThemeClass = computed(() => {
                 <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
                     <div class="flex items-center gap-2">
                         <ApplicationLogo className="w-5 h-5" variant="1" />
-                        <h3 class="text-base font-bold text-zinc-900">Tambah Komponen Profil</h3>
+                        <h3 class="text-base font-bold text-zinc-900">Tambah Tautan Profil</h3>
                     </div>
                     <button @click="showAddModal = false" class="text-zinc-400 hover:text-zinc-700 text-xl font-bold">&times;</button>
                 </div>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-zinc-700 uppercase mb-1">Tipe Komponen</label>
+                        <label class="block text-xs font-bold text-zinc-700 uppercase mb-1">Jenis Tautan / Konten</label>
                         <select
                             v-model="componentForm.type"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none min-h-[44px]"
                         >
                             <option value="social_link">Tautan Media Sosial</option>
                             <option value="featured_link">Tautan Unggulan (Card Highlight)</option>
@@ -1340,7 +1658,7 @@ const currentThemeClass = computed(() => {
                         <input
                             type="text"
                             v-model="componentForm.title"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none min-h-[44px]"
                             placeholder="Contoh: Instagram Official"
                         />
                     </div>
@@ -1350,7 +1668,7 @@ const currentThemeClass = computed(() => {
                         <input
                             type="text"
                             v-model="componentForm.url"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none font-mono"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none font-mono min-h-[44px]"
                             placeholder="https://..."
                         />
                     </div>
@@ -1369,7 +1687,7 @@ const currentThemeClass = computed(() => {
                         <label class="block text-xs font-bold text-zinc-700 uppercase mb-1">Ikon Representasi</label>
                         <select
                             v-model="componentForm.settings.icon"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none min-h-[44px]"
                         >
                             <option value="globe">Tautan Umum (Globe)</option>
                             <option value="instagram">Instagram</option>
@@ -1391,25 +1709,25 @@ const currentThemeClass = computed(() => {
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-2">
-                    <button @click="showAddModal = false" class="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-semibold hover:bg-zinc-200">
+                    <button @click="showAddModal = false" class="px-4 py-2.5 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-semibold hover:bg-zinc-200 min-h-[44px]">
                         Batal
                     </button>
                     <button
                         @click="submitNewComponent"
                         :disabled="componentForm.processing || !componentForm.title"
-                        class="px-5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold disabled:opacity-50"
+                        class="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold disabled:opacity-50 min-h-[44px]"
                     >
-                        {{ componentForm.processing ? 'Menyimpan...' : 'Simpan Komponen' }}
+                        {{ componentForm.processing ? 'Menyimpan...' : 'Tambah Tautan' }}
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- MODAL: Edit Komponen (Nuansa Putih) -->
+        <!-- MODAL: Edit Komponen (Nuansa Putih - UCD: Ubah Tautan Profil) -->
         <div v-if="editComponentModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-white border border-zinc-200 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl text-zinc-900">
                 <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
-                    <h3 class="text-base font-bold text-zinc-900">Edit Komponen</h3>
+                    <h3 class="text-base font-bold text-zinc-900">Ubah Tautan Profil</h3>
                     <button @click="editComponentModal = false" class="text-zinc-400 hover:text-zinc-700 text-xl font-bold">&times;</button>
                 </div>
 
@@ -1419,7 +1737,7 @@ const currentThemeClass = computed(() => {
                         <input
                             type="text"
                             v-model="componentForm.title"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none min-h-[44px]"
                         />
                     </div>
 
@@ -1428,7 +1746,7 @@ const currentThemeClass = computed(() => {
                         <input
                             type="text"
                             v-model="componentForm.url"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none font-mono"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none font-mono min-h-[44px]"
                         />
                     </div>
 
@@ -1445,7 +1763,7 @@ const currentThemeClass = computed(() => {
                         <label class="block text-xs font-bold text-zinc-700 uppercase mb-1">Ikon</label>
                         <select
                             v-model="componentForm.settings.icon"
-                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none"
+                            class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 focus:outline-none min-h-[44px]"
                         >
                             <option value="globe">Tautan Umum (Globe)</option>
                             <option value="instagram">Instagram</option>
@@ -1467,15 +1785,15 @@ const currentThemeClass = computed(() => {
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-2">
-                    <button @click="editComponentModal = false" class="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-semibold">
+                    <button @click="editComponentModal = false" class="px-4 py-2.5 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-semibold min-h-[44px]">
                         Batal
                     </button>
                     <button
                         @click="submitEditComponent"
                         :disabled="componentForm.processing || !componentForm.title"
-                        class="px-5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold disabled:opacity-50"
+                        class="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold disabled:opacity-50 min-h-[44px]"
                     >
-                        {{ componentForm.processing ? 'Menyimpan...' : 'Perbarui' }}
+                        {{ componentForm.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
                     </button>
                 </div>
             </div>
@@ -1541,6 +1859,17 @@ const currentThemeClass = computed(() => {
                         </div>
                     </div>
                     <span class="text-[10px] text-zinc-500 mt-2 font-mono">Pratinjau Gantungan Kunci Custom-mu</span>
+                </div>
+
+                <!-- UCD/HCD: Penjelasan Eksplisit Perbedaan Produk & Transparansi Paket -->
+                <div class="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200/70 flex items-start gap-2.5 text-xs text-blue-900 leading-relaxed">
+                    <span class="w-5 h-5 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <LunouIcon name="sparkles" className="w-3.5 h-3.5 text-blue-600" />
+                    </span>
+                    <div>
+                        <strong class="font-bold block">Informasi Transparan Produk:</strong>
+                        <span>Gantungan kunci fisik YOIMO NFC berfungsi membuka profil digital saat ditempelkan ke ponsel lain. Pembelian perangkat fisik ini adalah seumur hidup (hardware) dan <strong>terpisah dari langganan Web Portofolio</strong> (kecuali kamu memilih Paket Bundle di menu Web Portofolio).</span>
+                    </div>
                 </div>
 
                 <!-- ORDER FORM FIELDS -->
@@ -1806,5 +2135,70 @@ const currentThemeClass = computed(() => {
                 </div>
             </div>
         </div>
+
+        <!-- UCD/HCD: Mobile Bottom Navigation Bar (Maksimum 5 Item, Ramah Jempol, Target Sentuh min 48px) -->
+        <nav
+            aria-label="Navigasi Utama Ponsel"
+            class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200/90 shadow-lg px-2 py-1.5 pb-safe"
+        >
+            <div class="grid grid-cols-5 gap-1 items-center max-w-md mx-auto">
+                <button
+                    type="button"
+                    @click="activeTab = 'profile'; mobileView = 'editor'"
+                    class="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-xl transition-all"
+                    :class="activeTab === 'profile' && mobileView === 'editor' ? 'text-blue-600 font-bold bg-blue-50/60' : 'text-zinc-500 hover:text-zinc-900'"
+                    title="Menu Profil"
+                >
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span class="text-[10px] leading-tight font-medium">Profil</span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="activeTab = 'components'; mobileView = 'editor'"
+                    class="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-xl transition-all relative"
+                    :class="activeTab === 'components' && mobileView === 'editor' ? 'text-blue-600 font-bold bg-blue-50/60' : 'text-zinc-500 hover:text-zinc-900'"
+                    title="Menu Tautan"
+                >
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    <span class="text-[10px] leading-tight font-medium">Tautan</span>
+                    <span v-if="(profile.components?.length || 0) > 0" class="absolute top-1 right-2 w-4 h-4 rounded-full bg-zinc-900 text-white text-[8px] flex items-center justify-center font-bold">
+                        {{ profile.components.length }}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="activeTab = 'themes'; mobileView = 'editor'"
+                    class="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-xl transition-all"
+                    :class="activeTab === 'themes' && mobileView === 'editor' ? 'text-blue-600 font-bold bg-blue-50/60' : 'text-zinc-500 hover:text-zinc-900'"
+                    title="Menu Gaya"
+                >
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 5 5 0 015-5c1.1 0 2 .9 2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2c0-1.1.9-2 2-2a5 5 0 015 5 4 4 0 01-4 4H7z"/></svg>
+                    <span class="text-[10px] leading-tight font-medium">Gaya</span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="activeTab = 'nfc'; mobileView = 'editor'"
+                    class="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-xl transition-all"
+                    :class="activeTab === 'nfc' && mobileView === 'editor' ? 'text-blue-600 font-bold bg-blue-50/60' : 'text-zinc-500 hover:text-zinc-900'"
+                    title="Menu Keychain"
+                >
+                    <LunouIcon name="keychain" className="w-5 h-5 mb-0.5 text-blue-500" />
+                    <span class="text-[10px] leading-tight font-medium">Keychain</span>
+                </button>
+
+                <Link
+                    href="/studio/portfolio"
+                    class="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-xl transition-all text-zinc-600 hover:text-blue-600 relative"
+                    title="Menu Web Portofolio"
+                >
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    <span class="text-[10px] leading-tight font-bold">Portofolio</span>
+                    <span class="absolute top-1 right-2 px-1 py-0.2 rounded-xs bg-blue-600 text-white text-[7px] font-black uppercase">PRO</span>
+                </Link>
+            </div>
+        </nav>
     </div>
 </template>
